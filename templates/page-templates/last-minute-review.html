@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Last-Minute Review — {{SITE_NAME}}</title>
+  <link rel="stylesheet" href="{{THEME_CSS}}">
+  <style>
+    .review-page {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: var(--padding-page);
+    }
+
+    .review-page header {
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .review-page h1 {
+      color: var(--white);
+      margin-bottom: var(--spacing);
+    }
+
+    .review-page > .subtitle {
+      color: var(--text-mute);
+      font-size: 1rem;
+    }
+
+    /* Two-column layout on desktop */
+    .review-columns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--spacing-lg);
+    }
+
+    @media (max-width: 768px) {
+      .review-columns {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Content blocks */
+    .review-section {
+      margin-bottom: var(--spacing-lg);
+      break-inside: avoid;
+    }
+
+    .review-section h2 {
+      font-size: 1.2rem;
+      color: var(--white);
+      border-bottom: 2px solid var(--accent);
+      padding-bottom: var(--spacing);
+      margin-bottom: var(--spacing);
+    }
+
+    .review-section ul {
+      padding-left: 1.25rem;
+      margin: 0;
+    }
+
+    .review-section li {
+      margin-bottom: 0.35rem;
+      line-height: 1.5;
+    }
+
+    /* Formula reference cards */
+    .formula-card {
+      background: var(--formula-bg);
+      border: 1px solid var(--formula-border);
+      border-radius: var(--radius);
+      padding: var(--spacing);
+      margin-bottom: var(--spacing);
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+    }
+
+    /* Critical terms */
+    .critical-term {
+      background: var(--bg-sub);
+      padding: 0.1rem 0.35rem;
+      border-radius: var(--radius-sm);
+      font-weight: 600;
+      color: var(--accent-hi);
+      border-bottom: 2px solid var(--accent);
+    }
+
+    /* Print styles */
+    @media print {
+      body {
+        font-size: 10pt;
+        color: #000;
+        background: #fff;
+      }
+
+      .review-page {
+        padding: 0;
+        max-width: none;
+      }
+
+      .review-columns {
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+
+      .review-section h2 {
+        border-bottom-color: #000;
+        color: #000;
+      }
+
+      .formula-card {
+        border-color: #999;
+        background: #f5f5f5;
+      }
+
+      .critical-term {
+        background: none;
+        text-decoration: underline;
+        font-weight: bold;
+        color: inherit;
+      }
+
+      nav, footer, .no-print {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="review-page">
+    <header role="banner">
+      <h1>Last-Minute Review</h1>
+      <p class="subtitle">Quick-scan reference — everything on one page</p>
+    </header>
+
+    <main role="main">
+      <div class="review-columns">
+        {{REVIEW_CONTENT}}
+      </div>
+    </main>
+
+    <footer class="no-print">
+      <p>Tip: Use <kbd>Ctrl+P</kbd> / <kbd>Cmd+P</kbd> to print this page as a study sheet.</p>
+    </footer>
+  </div>
+
+  <script src="{{NAV_JS}}" defer></script>
+</body>
+</html>

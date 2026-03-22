@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Study Map — {{SITE_NAME}}</title>
+  <link rel="stylesheet" href="{{THEME_CSS}}">
+  <style>
+    .study-map-layout {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: var(--spacing-lg);
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: var(--padding-page);
+    }
+
+    @media (max-width: 768px) {
+      .study-map-layout {
+        grid-template-columns: 1fr;
+      }
+      .toc-sidebar {
+        position: static;
+        max-height: none;
+      }
+    }
+
+    /* Sidebar table of contents */
+    .toc-sidebar {
+      position: sticky;
+      top: var(--spacing-lg);
+      align-self: start;
+      max-height: calc(100vh - 3rem);
+      overflow-y: auto;
+      padding: var(--spacing);
+      background: var(--bg-sub);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+
+    .toc-sidebar h2 {
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-mute);
+      margin: 0 0 var(--spacing);
+    }
+
+    .toc-sidebar ol {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .toc-sidebar li {
+      margin-bottom: 0.25rem;
+    }
+
+    .toc-sidebar a {
+      display: block;
+      padding: 0.3rem 0.5rem;
+      font-size: 0.85rem;
+      color: var(--accent);
+      text-decoration: none;
+      border-radius: var(--radius-sm);
+    }
+
+    .toc-sidebar a:hover,
+    .toc-sidebar a:focus-visible {
+      background: var(--bg-deep);
+    }
+
+    .toc-sidebar .toc-subtopic {
+      padding-left: 1rem;
+    }
+
+    /* Main content area */
+    .study-map-content section {
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .study-map-content details {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: var(--spacing);
+      background: var(--bg-card);
+    }
+
+    .study-map-content details[open] > summary {
+      border-bottom: 1px solid var(--border);
+    }
+
+    .study-map-content summary {
+      padding: var(--spacing) var(--padding-card);
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--white);
+      list-style: none;
+    }
+
+    .study-map-content summary::before {
+      content: "\25B6 ";
+      font-size: 0.75em;
+      display: inline-block;
+      transition: transform 0.2s ease;
+    }
+
+    .study-map-content details[open] > summary::before {
+      transform: rotate(90deg);
+    }
+
+    .study-map-content summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .topic-body {
+      padding: var(--spacing) var(--padding-card);
+    }
+
+    /* Nested subtopics */
+    .subtopic {
+      margin-left: var(--spacing);
+      border-left: 2px solid var(--accent);
+      padding-left: var(--spacing);
+      margin-top: var(--spacing);
+    }
+
+    /* Relationship indicators */
+    .related-topics {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-top: var(--spacing);
+      padding-top: var(--spacing);
+      border-top: 1px dashed var(--border);
+    }
+
+    .related-tag {
+      font-size: 0.75rem;
+      padding: 0.15rem 0.5rem;
+      background: var(--bg-sub);
+      color: var(--accent);
+      border-radius: var(--radius-sm);
+      text-decoration: none;
+    }
+
+    .related-tag:hover,
+    .related-tag:focus-visible {
+      background: var(--bg-deep);
+      color: var(--accent-hi);
+    }
+  </style>
+</head>
+<body>
+  <header role="banner">
+    <h1>Study Map</h1>
+  </header>
+
+  <div class="study-map-layout">
+    <aside class="toc-sidebar" aria-label="Table of contents">
+      <h2>Contents</h2>
+      {{TOC_CONTENT}}
+    </aside>
+
+    <main class="study-map-content" role="main">
+      {{STUDY_MAP_CONTENT}}
+    </main>
+  </div>
+
+  <script src="{{NAV_JS}}" defer></script>
+  <script>
+    // Expand all details elements by default
+    document.addEventListener('DOMContentLoaded', function () {
+      document.querySelectorAll('.study-map-content details').forEach(function (el) {
+        el.setAttribute('open', '');
+      });
+    });
+  </script>
+</body>
+</html>

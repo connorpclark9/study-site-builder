@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{EXAM_TITLE}}</title>
+  <link rel="stylesheet" href="{{THEME_CSS}}">
+  <link rel="stylesheet" href="exam-styles.css">
+</head>
+<body>
+  <div class="exam-page">
+    <header class="exam-header">
+      <h1 class="exam-title">{{EXAM_TITLE}}</h1>
+      <p class="exam-description">{{EXAM_DESCRIPTION}}</p>
+      <div class="exam-meta">
+        <span class="exam-meta-item" id="exam-question-count"></span>
+        <span class="exam-meta-item" id="exam-progress"></span>
+      </div>
+    </header>
+
+    <form id="exam-form" autocomplete="off">
+      <div id="exam-container" data-exam="{{EXAM_DATA_PATH}}"></div>
+
+      <div class="exam-footer">
+        <button type="button" class="btn btn-check" id="btn-check-answers" disabled>
+          Show Correct Answers
+        </button>
+        <div id="score-summary" class="score-summary" hidden></div>
+      </div>
+    </form>
+  </div>
+
+  <script src="{{NAV_JS}}"></script>
+  <script src="exam-checker.js"></script>
+</body>
+</html>

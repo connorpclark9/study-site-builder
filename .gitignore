@@ -1,0 +1,23 @@
+# Generated output directories (created when the pipeline runs)
+study-notes/
+synthesis/
+audit/
+design/
+build/
+site/
+pipeline-status.json
+
+# Source materials (user-provided, not part of the plugin)
+source-materials/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
+
+# Claude Code local config
+.claude/

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sample Questions — {{SITE_NAME}}</title>
+  <link rel="stylesheet" href="{{THEME_CSS}}">
+  <style>
+    .questions-page {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: var(--padding-page);
+    }
+
+    .questions-page h1 {
+      color: var(--white);
+      margin-bottom: var(--spacing);
+    }
+
+    .questions-page > .subtitle {
+      color: var(--text-mute);
+      margin-bottom: var(--spacing-lg);
+    }
+
+    /* Topic group */
+    .question-group {
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .question-group h2 {
+      font-size: 1.2rem;
+      color: var(--white);
+      padding-bottom: var(--spacing);
+      border-bottom: 2px solid var(--accent);
+      margin-bottom: var(--spacing);
+    }
+
+    /* Individual question */
+    .question-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: var(--spacing) var(--padding-card);
+      margin-bottom: var(--spacing);
+    }
+
+    .question-item p.question-text {
+      font-weight: 600;
+      margin: 0 0 var(--spacing);
+      line-height: 1.5;
+    }
+
+    /* Spoiler-style answer reveal */
+    .question-item details {
+      margin-top: var(--spacing);
+    }
+
+    .question-item summary {
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: var(--accent);
+      font-weight: 500;
+      padding: 0.3rem 0;
+      list-style: none;
+    }
+
+    .question-item summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .question-item summary::before {
+      content: "\25B8 ";
+    }
+
+    .question-item details[open] > summary::before {
+      content: "\25BE ";
+    }
+
+    .answer-content {
+      margin-top: var(--spacing);
+      padding: var(--spacing);
+      background: var(--bg-sub);
+      border-radius: var(--radius-sm);
+      border-left: 3px solid var(--accent);
+      line-height: 1.6;
+    }
+
+    @media (max-width: 600px) {
+      .questions-page {
+        padding: var(--spacing);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="questions-page">
+    <header role="banner">
+      <h1>Sample Questions</h1>
+      <p class="subtitle">Quick self-test — click "Show Answer" to check your understanding</p>
+    </header>
+
+    <main role="main">
+      {{SAMPLE_QUESTIONS_CONTENT}}
+    </main>
+  </div>
+
+  <script src="{{NAV_JS}}" defer></script>
+</body>
+</html>
