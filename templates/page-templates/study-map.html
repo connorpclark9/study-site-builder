@@ -6,283 +6,600 @@
   <title>Study Map — {{SITE_NAME}}</title>
   <link rel="stylesheet" href="{{THEME_CSS}}">
   <style>
-    .study-map-page {
-      max-width: var(--max-width);
-      margin: 0 auto;
-      padding: var(--padding-page);
-    }
+  /* ════════════════════════════════════════
+     STUDY MAP PAGE LAYOUT
+  ════════════════════════════════════════ */
+  .study-map-page {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: var(--padding-page);
+  }
 
-    .study-map-page header {
-      margin-bottom: var(--spacing-lg);
-    }
+  .study-map-page header {
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
 
-    .study-map-page h1 {
-      color: var(--white);
-      margin-bottom: var(--spacing);
-    }
+  .study-map-page h1 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 5px;
+  }
 
-    .study-map-page > .subtitle {
-      color: var(--text-mute);
-      font-size: 1rem;
-    }
+  .study-map-page > header > p {
+    color: var(--text-mute);
+    font-size: 14px;
+  }
 
-    /* Topic blocks */
-    .topic-block {
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      margin-bottom: var(--spacing);
-      background: var(--bg-card);
-      overflow: hidden;
+  /* ════════════════════════════════════════
+     CENTRAL QUESTIONS BLOCK
+     (3-column grid of framing questions shown
+      above the topic accordion — optional,
+      omit placeholder if course has none)
+  ════════════════════════════════════════ */
+  .central-questions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+
+  .cq-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+  }
+
+  .cq-number {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+
+  .cq-question {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--white);
+    margin-bottom: 6px;
+    line-height: 1.4;
+  }
+
+  .cq-tool {
+    font-size: 12px;
+    color: var(--text-mute);
+  }
+
+  .cq-tool strong {
+    color: var(--accent-hi);
+  }
+
+  /* ════════════════════════════════════════
+     TOPIC BLOCKS (top-level accordion)
+  ════════════════════════════════════════ */
+  .topic-block {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .topic-block:hover {
+    border-color: var(--border-hi);
+  }
+
+  .topic-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 20px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s;
+  }
+
+  .topic-header:hover {
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  /* Icon box — dark pill with emoji, NOT just a bare emoji */
+  .topic-icon {
+    font-size: 20px;
+    width: 40px;
+    height: 40px;
+    background: var(--bg-deep);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .topic-text {
+    flex: 1;
+  }
+
+  /* Small uppercase label above the title */
+  .topic-eyebrow {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 3px;
+  }
+
+  .topic-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 2px;
+  }
+
+  .topic-desc {
+    font-size: 12.5px;
+    color: var(--text-mute);
+  }
+
+  .topic-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  .topic-pill {
+    font-size: 10.5px;
+    padding: 3px 10px;
+    border-radius: 100px;
+    background: var(--bg-deep);
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  .chevron {
+    font-size: 12px;
+    color: var(--text-dim);
+    transition: transform 0.25s;
+  }
+
+  .topic-block.open .chevron {
+    transform: rotate(90deg);
+  }
+
+  .topic-body {
+    display: none;
+    padding: 0 16px 16px;
+  }
+
+  .topic-block.open .topic-body {
+    display: block;
+  }
+
+  /* ════════════════════════════════════════
+     SUBTOPIC GRID
+  ════════════════════════════════════════ */
+  .subtopic-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 10px;
+  }
+
+  .subtopic {
+    background: var(--bg-sub);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .subtopic-hdr {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s;
+  }
+
+  .subtopic-hdr:hover {
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  /* Blue dot for regular subtopics; amber dot for case studies */
+  .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+  }
+
+  .dot.case {
+    background: #c89a40;
+  }
+
+  .subtopic-title {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text);
+    flex: 1;
+    line-height: 1.3;
+  }
+
+  .sub-chev {
+    font-size: 10px;
+    color: var(--text-dim);
+    transition: transform 0.2s;
+  }
+
+  .subtopic.open .sub-chev {
+    transform: rotate(90deg);
+  }
+
+  .subtopic-body {
+    display: none;
+    padding: 12px 14px 14px;
+    border-top: 1px solid var(--border);
+    overflow-x: hidden;
+  }
+
+  .subtopic.open .subtopic-body {
+    display: block;
+  }
+
+  /* ════════════════════════════════════════
+     CONTENT ELEMENTS INSIDE SUBTOPIC BODIES
+     — these classes are used by the content
+       generator; do not remove or rename them
+  ════════════════════════════════════════ */
+
+  /* ALL-CAPS section divider within a subtopic */
+  .section-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 6px;
+    margin-top: 14px;
+  }
+
+  .section-label:first-child {
+    margin-top: 0;
+  }
+
+  /* Explanatory prose — muted base with white <strong> keywords */
+  .prose {
+    font-size: 13px;
+    color: var(--text-mute);
+    line-height: 1.65;
+    margin-bottom: 10px;
+  }
+
+  /* Key terms/phrases in prose get near-white emphasis */
+  .prose strong {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  /* Bullet lists */
+  ul.bullets {
+    list-style: none;
+    margin-bottom: 10px;
+    padding: 0;
+  }
+
+  ul.bullets li {
+    font-size: 13px;
+    color: var(--text-mute);
+    padding: 3px 0 3px 16px;
+    position: relative;
+    line-height: 1.55;
+  }
+
+  ul.bullets li::before {
+    content: '·';
+    position: absolute;
+    left: 5px;
+    color: var(--accent);
+    font-size: 16px;
+    line-height: 1.15;
+  }
+
+  /* Key terms/phrases in bullets also get white emphasis */
+  ul.bullets li strong {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  /* ════════════════════════════════════════
+     FORMULA BLOCKS
+     Structure:
+       <div class="formula-wrap">
+         <div class="formula">NPV = C₀ + Σ [Cₜ/(1+r)ᵗ]</div>
+         <div class="formula-explain">
+           <strong>Variables:</strong> ...<br>
+           <strong>Intuition:</strong> ...
+         </div>
+       </div>
+  ════════════════════════════════════════ */
+  .formula-wrap {
+    background: var(--formula-bg, #111f35);
+    border: 1px solid var(--formula-border, rgba(100, 160, 255, 0.25));
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+  }
+
+  .formula {
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 13px;
+    color: #9ecfff;
+    line-height: 1.7;
+    margin-bottom: 6px;
+    overflow-x: auto;
+    word-break: break-word;
+  }
+
+  .formula-explain {
+    font-size: 12px;
+    color: var(--text-mute);
+    line-height: 1.6;
+    border-top: 1px solid rgba(100, 160, 255, 0.12);
+    padding-top: 8px;
+    margin-top: 4px;
+  }
+
+  /* Variable names and "Intuition:" label inside formula-explain */
+  .formula-explain strong {
+    color: #9ecfff;
+  }
+
+  /* ════════════════════════════════════════
+     KEY INSIGHT BOXES
+     Placed at the END of every subtopic body.
+     Structure:
+       <div class="insight-box">
+         <div class="label">KEY INSIGHT</div>
+         <p>Synthesis sentence(s). <strong>Bold key claim.</strong></p>
+       </div>
+  ════════════════════════════════════════ */
+  .insight-box {
+    background: rgba(100, 159, 216, 0.08);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+  }
+
+  .insight-box p {
+    font-size: 12.5px;
+    color: var(--text);
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  .insight-box .label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  /* ════════════════════════════════════════
+     RELATED CONCEPT TAGS
+     Placed after the insight-box.
+     Structure:
+       <div class="link-tags">
+         <span class="link-tag">Related: NPV</span>
+         <span class="link-tag">Case: Swiss Watch</span>
+       </div>
+  ════════════════════════════════════════ */
+  .link-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 12px;
+  }
+
+  .link-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    padding: 3px 9px;
+    border-radius: 100px;
+    background: var(--bg-deep);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    margin: 0;
+  }
+
+  .link-tag::before {
+    content: '↔';
+    color: var(--accent);
+  }
+
+  /* ════════════════════════════════════════
+     SUPPLEMENTARY SECTION DIVIDER
+  ════════════════════════════════════════ */
+  .supplementary-divider {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 32px 0 16px;
+  }
+
+  .supplementary-divider hr {
+    flex: 1;
+    border: none;
+    border-top: 1px solid var(--border);
+  }
+
+  .supplementary-divider span {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+
+  /* ════════════════════════════════════════
+     RESPONSIVE
+  ════════════════════════════════════════ */
+  @media (max-width: 768px) {
+    .central-questions {
+      grid-template-columns: 1fr;
+      gap: 10px;
     }
 
     .topic-header {
-      display: flex;
-      align-items: center;
-      gap: var(--spacing);
-      padding: var(--padding-card);
-      cursor: pointer;
-      user-select: none;
-      transition: background 0.15s;
-    }
-
-    .topic-header:hover {
-      background: var(--bg-sub);
+      padding: 14px 16px;
+      gap: 10px;
     }
 
     .topic-icon {
-      font-size: 1.5rem;
-      flex-shrink: 0;
-    }
-
-    .topic-info {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .topic-eyebrow {
-      font-size: 0.72rem;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--accent);
-      font-weight: 600;
-      margin-bottom: 0.15rem;
+      width: 34px;
+      height: 34px;
+      font-size: 17px;
+      border-radius: 8px;
     }
 
     .topic-title {
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: var(--white);
-      margin-bottom: 0.25rem;
-    }
-
-    .topic-desc {
-      font-size: 0.88rem;
-      color: var(--text-mute);
-      line-height: 1.4;
-    }
-
-    .topic-right {
-      display: flex;
-      align-items: center;
-      gap: var(--spacing);
-      flex-shrink: 0;
+      font-size: 15px;
     }
 
     .topic-pill {
-      font-size: 0.75rem;
-      padding: 0.2rem 0.6rem;
-      background: var(--bg-sub);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      color: var(--text-mute);
-      white-space: nowrap;
+      display: none;
     }
 
-    .chevron {
-      width: 20px;
-      height: 20px;
-      border: none;
-      background: none;
-      color: var(--text-dim);
-      transition: transform 0.25s;
-      font-size: 0.85rem;
+    .subtopic-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .topic-header {
+      padding: 12px 14px;
+      gap: 8px;
     }
 
-    .chevron::after {
-      content: "\25B6";
+    .topic-icon {
+      width: 30px;
+      height: 30px;
+      font-size: 15px;
     }
 
-    .topic-block.open .chevron {
-      transform: rotate(90deg);
+    .topic-title {
+      font-size: 14px;
+    }
+
+    .topic-desc {
+      font-size: 11.5px;
     }
 
     .topic-body {
-      display: none;
-      padding: 0 var(--padding-card) var(--padding-card);
-    }
-
-    .topic-block.open .topic-body {
-      display: block;
-    }
-
-    /* Subtopic grid */
-    .subtopic-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: var(--spacing);
-    }
-
-    .section-label {
-      font-size: 0.78rem;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--text-dim);
-      font-weight: 600;
-      margin-bottom: var(--spacing);
-      padding-bottom: 0.35rem;
-      border-bottom: 1px solid var(--border);
-    }
-
-    /* Subtopic cards */
-    .subtopic {
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      background: var(--bg-sub);
-      overflow: hidden;
+      padding: 0 10px 12px;
     }
 
     .subtopic-hdr {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0.65rem 0.85rem;
-      cursor: pointer;
-      user-select: none;
-      transition: background 0.15s;
-    }
-
-    .subtopic-hdr:hover {
-      background: var(--bg-deep);
-    }
-
-    .subtopic-hdr .dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--accent);
-      flex-shrink: 0;
-      margin-right: 0.5rem;
-    }
-
-    .subtopic-hdr span {
-      flex: 1;
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: var(--white);
-    }
-
-    .sub-chev {
-      font-size: 0.7rem;
-      color: var(--text-dim);
-      transition: transform 0.2s;
-    }
-
-    .sub-chev::after {
-      content: "\25B6";
-    }
-
-    .subtopic.open .sub-chev {
-      transform: rotate(90deg);
+      padding: 10px 12px;
     }
 
     .subtopic-body {
-      display: none;
-      padding: 0.65rem 0.85rem;
-      border-top: 1px solid var(--border);
+      padding: 10px 12px 12px;
     }
 
-    .subtopic.open .subtopic-body {
-      display: block;
+    .subtopic-title {
+      font-size: 13px;
     }
 
-    .subtopic-body .prose {
-      font-size: 0.88rem;
-      color: var(--text);
-      line-height: 1.55;
-      margin-bottom: 0.5rem;
+    .prose {
+      font-size: 12.5px;
     }
 
-    .subtopic-body .bullets {
-      list-style: disc;
-      padding-left: 1.25rem;
-      margin: 0;
+    ul.bullets li {
+      font-size: 12.5px;
     }
 
-    .subtopic-body .bullets li {
-      font-size: 0.85rem;
-      color: var(--text);
-      line-height: 1.45;
-      margin-bottom: 0.25rem;
+    .formula {
+      font-size: 12px;
     }
 
-    /* Link tags (connections) */
-    .link-tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.3rem;
-      margin-top: 0.5rem;
+    .formula-wrap {
+      padding: 10px 12px;
+    }
+
+    .insight-box p {
+      font-size: 12px;
     }
 
     .link-tag {
-      font-size: 0.72rem;
-      padding: 0.1rem 0.45rem;
-      background: var(--bg-deep);
-      color: var(--accent);
-      border-radius: var(--radius-sm);
-      text-decoration: none;
+      font-size: 10px;
+    }
+  }
+
+  /* Better touch targets */
+  @media (pointer: coarse) {
+    .topic-header {
+      min-height: 52px;
     }
 
-    .link-tag:hover {
-      background: var(--bg-card);
-      color: var(--accent-hi);
+    .subtopic-hdr {
+      min-height: 44px;
     }
-
-    /* Responsive */
-    @media (max-width: 600px) {
-      .subtopic-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .topic-header {
-        flex-wrap: wrap;
-      }
-
-      .topic-right {
-        width: 100%;
-        justify-content: flex-end;
-        margin-top: 0.35rem;
-      }
-    }
+  }
   </style>
 </head>
 <body>
   <div class="study-map-page">
+
     <header role="banner">
-      <h1>Study Map</h1>
-      <p class="subtitle">Explore the course concepts organized by topic and lecture</p>
+      <h1>{{COURSE_NAME}} — Study Map</h1>
+      <p>Click any block to expand · Drill into sub-topics to reveal explanations, formulas, and connections</p>
     </header>
 
     <main role="main">
+
+      <!--
+        CENTRAL QUESTIONS (optional)
+        If the course has 2–4 overarching framing questions, replace this block
+        with a .central-questions grid of .cq-card elements.
+        If there are no central questions, delete this comment and the block below.
+      -->
+      {{CENTRAL_QUESTIONS}}
+
+      <!-- Topic accordion — populated from content data -->
       <div id="topics-container">
         {{STUDY_MAP_CONTENT}}
       </div>
+
     </main>
   </div>
 
   <script src="{{NAV_JS}}" defer></script>
   <script>
-    function toggleTopic(id) { document.getElementById(id)?.classList.toggle('open'); }
-    function toggleSub(id) { document.getElementById(id)?.classList.toggle('open'); }
+    function toggleTopic(id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.toggle('open');
+    }
+
+    function toggleSub(id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.toggle('open');
+    }
   </script>
 </body>
 </html>

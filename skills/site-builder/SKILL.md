@@ -178,37 +178,264 @@ Include the appropriate section below **only** in the sub-PRD for that page type
 
 #### Study Map (`study-map`)
 
-**Design goal: Zero-to-Complete-Understanding.** The study map must be comprehensive and deep enough that a student with zero prior knowledge could read it and develop a complete understanding of the course material. It is NOT a brief overview or a set of topic labels — it is the entire course distilled into one navigable page. Every concept must be fully explained with definitions, significance, how it works, examples, and connections.
+---
 
-**Content sources:** The study map uses TWO sources:
-1. `synthesis/conceptual-map.md` — provides the **structural skeleton**: course narrative, lecture progression order, cross-cutting themes, concept relationships, and the dependency graph. Use this to determine the organization, groupings, and connections.
-2. `study-notes/*.md` — provides the **substantive content**: full concept explanations, framework details, examples, key terms, and glossary definitions. For each concept or framework referenced in the conceptual map, read the corresponding study note and pull the full teaching-quality content from its Key Concepts, Frameworks & Mental Models, and Key Terms sections.
+##### DESIGN GOAL
 
-**Content depth requirements:**
-- **Explain, don't list.** Every concept in a subtopic body must have a teaching-quality explanation (3+ sentences minimum). "NPV is a method for evaluating investments" is insufficient — explain what it is, how it's calculated, why it's preferred, and when it fails.
-- **Preserve frameworks in full.** If a study note describes a 2x2 matrix, multi-step process, or named framework, reproduce its structure and explain how to use it. Don't reduce a 5-step framework to a one-liner.
-- **Include examples.** Wherever the study notes contain examples, calculations, or case studies, incorporate them into the subtopic content.
-- **Cover everything.** Every concept from the Key Concepts section and every framework from the Frameworks & Mental Models section of every study note must appear as subtopic content. If a study note has 8 key concepts, the study map has 8 subtopics for that lecture.
+The study map is the most important page in the entire site. It must be comprehensive and deep enough that a student with **zero prior knowledge** could read it and develop a complete, exam-ready understanding of the entire course. It is NOT a list of topic labels, NOT a glossary, NOT a brief overview — it is the **entire course distilled into one navigable, educational page**. Every concept must be fully taught: what it is, why it matters, how it works, how to use it, what it connects to.
 
-**HTML structure — topic-block/subtopic pattern:**
-- Each top-level heading (theme or lecture group) becomes a `.topic-block` with a clickable `.topic-header` containing an icon, `.topic-eyebrow` (lecture range), `.topic-title`, `.topic-desc`, `.topic-pill` (count), and `.chevron`
-- The header uses `onclick="toggleTopic('topic-N')"` to toggle the `.open` class
-- Inside each `.topic-body`, individual concepts become `.subtopic` cards in a `.subtopic-grid`
-- Each subtopic has a `.subtopic-hdr` with `onclick="toggleSub('sub-N')"` and a `.subtopic-body` containing `.prose`, `.bullets`, and `.link-tags`
-- `.prose` sections should contain the full explanatory paragraphs pulled from study notes — not abbreviated summaries
-- `.bullets` should contain key details, nuances, and sub-points
-- Do NOT use `<details>/<summary>` elements, sidebar table of contents, or dependency graph visualizations
-- Cross-references between concepts become `.link-tag` elements inside `.link-tags`
+Think of each subtopic body as a **mini-lecture** on that concept. It should feel authoritative, specific, and genuinely useful — not like a Wikipedia stub or a slide-deck bullet point.
 
-**Supplementary Material section:**
+---
 
-After the lecture progression topic-blocks, add a visually distinct "Supplementary Material" section for study notes with `type: supplementary`. Read each supplementary study note from `study-notes/` and render them using the same `.topic-block` / `.subtopic` pattern, but with these differences:
-- The `.topic-eyebrow` label says "Supplementary" instead of a lecture range (e.g., "Lectures 5-7")
-- Group supplementary blocks by source type where possible (e.g., "Case Studies", "Practice Problems", "Additional Readings")
-- Include `.link-tag` cross-references that connect supplementary concepts back to the relevant lecture topic-blocks
-- If there are no supplementary study notes, omit this section entirely
+##### CONTENT SOURCES
 
-To determine which study notes are supplementary: read the `type` field from each study note's YAML frontmatter. If `type: supplementary`, it goes in this section. If `type: lecture` or `type` is absent, it goes in the main lecture progression.
+The study map uses TWO sources:
+
+1. `synthesis/conceptual-map.md` — the **structural skeleton**: course narrative, lecture progression order, cross-cutting themes, concept relationships. Use this to determine groupings, ordering, and connection metadata.
+2. `study-notes/*.md` — the **substantive content**: full concept explanations, framework details, examples, worked calculations, key terms, and case study details. For every concept referenced in the conceptual map, read the corresponding study note and pull the full teaching-quality content from its Key Concepts, Frameworks & Mental Models, and Key Terms sections.
+
+---
+
+##### CONTENT DEPTH — NON-NEGOTIABLE REQUIREMENTS
+
+- **Explain, don't label.** "NPV is used to evaluate investments" is a label, not an explanation. Write "NPV is the sum of all future cash flows discounted back to today at the cost of capital. It is the definitive financial criterion for every operations strategy decision because it captures both the magnitude and timing of value creation. A positive NPV means the investment earns more than the cost of capital; a negative NPV means it destroys value. Every capacity decision, make-or-buy choice, and technology investment in this course is ultimately evaluated by its NPV impact."
+- **Minimum substance per subtopic:** Every subtopic body must contain at least one opening prose paragraph (3–5 sentences), at least two section-labeled groups of content (bullets or prose), and a KEY INSIGHT box. Shorter than this is too shallow.
+- **Preserve frameworks completely.** If a study note describes a 2×2 matrix, a named three-step process, or a diagnostic tool with multiple levels — reproduce the entire structure and explain how to apply it. Never compress a 5-step framework into a single bullet.
+- **Include real examples and numbers.** When the study notes contain case details, calculations, or specific examples, incorporate them. Generic explanations without examples are insufficiently useful.
+- **Cover everything.** Every concept from every Key Concepts section and every framework from every Frameworks & Mental Models section of every study note must appear as a subtopic. If a study note has 8 key concepts, generate 8 subtopics for that lecture group.
+
+---
+
+##### WRITING VOICE & TONE
+
+The writing must be **direct, authoritative, and educational** — like a brilliant professor who respects the student's intelligence and wants them to genuinely understand the material, not just memorize it.
+
+Rules:
+- Address the student as "you" where it helps understanding ("The critical ratio tells you exactly how aggressive to be with safety capacity.")
+- Name and explain the "why" behind every concept before the "what." ("Trade-offs exist because of the finite nature of any operational system — this is not a management failure, it is a structural property.")
+- Use contrast to create clarity ("This is NOT a brief overview — it IS the entire course distilled into one page.")
+- Be specific rather than vague ("A positive COE means a competitor could deliver the exact same value proposition at lower cost using a better operational system — that is a structural threat, not a pricing disagreement.")
+- Connect every concept back to the course's core question or framework ("This is why the OS Framework matters: every resource and process decision either moves you toward or away from the capabilities your business strategy requires.")
+- In KEY INSIGHT boxes, synthesize the main takeaway in 2–4 sentences that connect the concept to the broader course or exam context.
+
+---
+
+##### KEYWORD HIGHLIGHTING — REQUIRED
+
+Use `<strong>` tags on key terms and critical phrases throughout all prose and bullets. These render in near-white (`var(--text)`) against the muted body text, creating visual hierarchy that guides the reader's eye to what matters.
+
+Rules for `<strong>` usage:
+- **Named concepts, frameworks, and tools** — always bold on first use in each subtopic (`<strong>Net Present Value (NPV)</strong>`, `<strong>Operational Efficiency (OE)</strong>`)
+- **Critical distinctions** — bold the contrasting terms (`<strong>operations management</strong>` vs. `<strong>operations strategy</strong>`)
+- **Decision rules and conclusions** — bold the key claim (`<strong>NPV > 0 means the investment creates value</strong>`)
+- **Numbers and quantitative thresholds** that carry meaning (`<strong>COE = $4.16/thousand units</strong>`)
+- Do NOT bold every word — only what a student would underline when studying
+
+---
+
+##### EXACT HTML STRUCTURE FOR EVERY SUBTOPIC BODY
+
+Every `.subtopic-body` must follow this exact pattern. Do not deviate.
+
+```html
+<!-- 1. OPENING PROSE — what it is and why it matters (3–5 sentences, NOT a definition) -->
+<p class="prose">
+  [Opening: What is this concept? Why does it exist? What problem does it solve?
+   What would go wrong without it? Connect to broader course context.
+   Use <strong> for key terms.]
+</p>
+
+<!-- 2. SECTION LABELS + CONTENT BLOCKS (repeat as needed, minimum 2 sections) -->
+<!-- Each section-label is ALL-CAPS, accent-colored, functions like a subheading -->
+<div class="section-label">THE [CONCEPT] IN FULL</div>
+<p class="prose">
+  [Explain the full mechanism, structure, or formula in prose.]
+</p>
+
+<div class="section-label">KEY [COMPONENTS / STEPS / VARIABLES / CASES]</div>
+<ul class="bullets">
+  <li><strong>Term or component name</strong> — Full sentence explanation. Never just a label. Include what it means, why it matters, and if possible a concrete example.</li>
+  <li><strong>Another term</strong> — Full sentence explanation with <strong>sub-highlights</strong> where relevant.</li>
+</ul>
+
+<!-- 3. FORMULA BLOCK — required for any concept involving a formula, ratio, or calculation -->
+<!-- (Omit this block only if there is genuinely no formula involved) -->
+<div class="section-label">THE FORMULA</div>
+<div class="formula-wrap">
+  <div class="formula">FORMULA = WRITTEN OUT HERE with subscripts using Unicode (₀₁₂ etc.)</div>
+  <div class="formula-explain">
+    <strong>Variables:</strong><br>
+    X = [what X represents and its units]<br>
+    Y = [what Y represents and its units]<br>
+    <br>
+    <strong>Intuition:</strong> [2–4 sentences explaining WHY the formula is structured this way,
+    what drives the result up or down, and what the formula is really capturing conceptually.
+    This is the most valuable part — not just what to plug in, but why it works.]
+  </div>
+</div>
+
+<!-- Optional: decision rules, application steps, worked examples -->
+<div class="section-label">HOW TO APPLY IT</div>
+<ul class="bullets">
+  <li><strong>Step 1 / Condition 1:</strong> Full sentence explanation.</li>
+  <li><strong>Step 2 / Condition 2:</strong> Full sentence explanation.</li>
+</ul>
+
+<!-- 4. KEY INSIGHT BOX — REQUIRED at the end of every subtopic, before link-tags -->
+<!-- This is the synthesis: the most important thing to remember, exam implications,
+     or the connection that unlocks the broader picture. -->
+<div class="insight-box">
+  <div class="label">KEY INSIGHT</div>
+  <p>[2–4 sentences. Synthesize the main takeaway. Connect to the course's central
+     question, the exam context, or a related concept that makes this click.
+     Use <strong>bold</strong> for the critical claim.]</p>
+</div>
+
+<!-- 5. RELATED CONCEPTS — always last -->
+<div class="link-tags">
+  <span class="link-tag">Related: [Concept Name]</span>
+  <span class="link-tag">Related: [Framework Name]</span>
+  <span class="link-tag">Case: [Case Study Name]</span>
+</div>
+```
+
+---
+
+##### SECTION LABEL GUIDELINES
+
+Section labels (`<div class="section-label">`) are ALL-CAPS short phrases that act as sub-headings within a subtopic body. They organize the content into scannable chunks. Good examples:
+- `THE FORMAL DEFINITION`
+- `WHY THIS MATTERS`
+- `THE THREE LEVELS`
+- `HOW TO USE THIS ON THE EXAM`
+- `THE FORMULA`
+- `VARIABLE DEFINITIONS`
+- `THE KEY DISTINCTION`
+- `REAL-WORLD APPLICATION`
+- `THE TWO MISALIGNMENT POSITIONS`
+
+Bad examples (too vague, too short): `OVERVIEW`, `DETAILS`, `MORE`, `NOTES`
+
+Always use 2–5 section labels per subtopic. More than 6 means the subtopic should probably be split into two.
+
+---
+
+##### FORMULA HANDLING — COMPLETE REQUIREMENTS
+
+Any concept that involves a formula, ratio, critical value, or quantitative decision rule gets a `.formula-wrap` block. The block must contain:
+
+1. **`.formula`** — the formula itself, written clearly using Unicode for subscripts/superscripts (₀₁₂₃ ⁻¹ etc.) and standard mathematical notation. Use `=`, `+`, `−`, `×`, `/`, `Σ`, `√` as needed.
+2. **`.formula-explain`** — two required sub-sections:
+   - `<strong>Variables:</strong>` — a line-by-line definition of every variable, including what it represents, what units it's in, and what values are typical or meaningful.
+   - `<strong>Intuition:</strong>` — 2–4 sentences explaining the conceptual logic of the formula. Why is it structured this way? What drives the result higher or lower? What is the formula really capturing? This section is often more valuable than the formula itself.
+
+If a concept has multiple related formulas (e.g., a main formula + a rearrangement for solving a specific variable), use multiple `.formula-wrap` blocks with a `<div class="section-label">` before each one.
+
+---
+
+##### KEY INSIGHT BOX — REQUIRED FOR EVERY SUBTOPIC
+
+Every single subtopic body ends with a `.insight-box` before the `.link-tags`. No exceptions. The insight box is NOT a summary of what was just said — it is:
+- The **single most important thing** to internalize about this concept
+- OR the **exam/application implication** that most students miss
+- OR the **connection to the broader course framework** that makes this concept click
+
+Good insight boxes are specific, opinionated, and make you think. Bad insight boxes just restate the definition in different words.
+
+Example of a GOOD insight box:
+> "The cost decomposition formula is most valuable as a diagnostic tool, not an accounting exercise. **Only COE signals a real operational problem** — Cv is often temporary (volume can recover) and CS is intentional (it is the cost of differentiation). A large COE means a rival's operational systems are fundamentally better than yours at the same task, and that gap will not close on its own."
+
+Example of a BAD insight box:
+> "NPV is an important financial tool for evaluating operations strategy decisions. It should be calculated carefully using the correct formula and discount rate."
+
+---
+
+##### CASE STUDY SUBTOPICS
+
+Any subtopic that covers a case study (rather than a concept or framework) should:
+- Use `<div class="dot case"></div>` (amber dot) instead of `<div class="dot"></div>` in the `.subtopic-hdr`
+- Open with the business situation and strategic question (not a company bio)
+- Walk through the relevant analytical frameworks applied in the case (SOA, PPM, cost decomposition, etc.)
+- Include the key quantitative data points from the case where available
+- End with the strategic lesson — what general principle does this case demonstrate?
+
+---
+
+##### CENTRAL QUESTIONS BLOCK (optional, replaces `{{CENTRAL_QUESTIONS}}`)
+
+If the course has 2–4 overarching framing questions that structure the entire course (e.g., "What should operations be good at?", "Which system best provides those capabilities?"), render them as a `.central-questions` grid above the topic accordion:
+
+```html
+<div class="central-questions">
+  <div class="cq-card">
+    <div class="cq-number">Question 1</div>
+    <div class="cq-question">[The overarching question]</div>
+    <div class="cq-tool">Tool: <strong>[Primary framework/tool]</strong> — [brief description]</div>
+  </div>
+  <!-- repeat for each question -->
+</div>
+```
+
+If the course does not have clear overarching framing questions, replace `{{CENTRAL_QUESTIONS}}` with an empty string.
+
+---
+
+##### TOPIC-BLOCK HTML STRUCTURE (exact pattern)
+
+```html
+<div class="topic-block" id="t-[unique-id]">
+  <div class="topic-header" onclick="toggleTopic('t-[unique-id]')">
+    <div class="topic-icon">[emoji]</div>
+    <div class="topic-text">
+      <div class="topic-eyebrow">[Lectures X–Y · Theme Label]</div>
+      <div class="topic-title">[Topic Group Title]</div>
+      <div class="topic-desc">[Comma-separated list of subtopic names — helps student know what's inside]</div>
+    </div>
+    <div class="topic-right">
+      <span class="topic-pill">[N] sub-topics</span>
+      <span class="chevron">▶</span>
+    </div>
+  </div>
+  <div class="topic-body">
+    <div class="subtopic-grid">
+      <!-- subtopic cards -->
+      <div class="subtopic" id="s-[unique-id]">
+        <div class="subtopic-hdr" onclick="toggleSub('s-[unique-id]')">
+          <div class="dot"></div>  <!-- use class="dot case" for case study subtopics -->
+          <div class="subtopic-title">[Concept Name]</div>
+          <span class="sub-chev">▶</span>
+        </div>
+        <div class="subtopic-body">
+          <!-- full subtopic content as described above -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+```
+
+All IDs must be unique across the page. Use kebab-case slugs derived from the concept name (e.g., `s-npv`, `s-critical-ratio`, `t-foundations`).
+
+Do NOT use `<details>/<summary>` elements, sidebar tables of contents, or dependency graph visualizations anywhere on this page.
+
+---
+
+##### SUPPLEMENTARY MATERIAL SECTION
+
+After all lecture-progression topic-blocks, add a supplementary section for any study notes with `type: supplementary` in their YAML frontmatter. Separate it from the main content with:
+
+```html
+<div class="supplementary-divider">
+  <hr>
+  <span>Supplementary Material</span>
+  <hr>
+</div>
+```
+
+Then render supplementary content using the same `.topic-block` / `.subtopic` pattern, but with `.topic-eyebrow` set to "Supplementary" instead of a lecture range. Include `.link-tag` cross-references back to the relevant lecture topic-blocks.
+
+If there are no supplementary study notes, omit this section entirely.
 
 #### Last-Minute Review (`last-minute-review`)
 
