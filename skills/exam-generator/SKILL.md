@@ -49,13 +49,13 @@ Use this path when invoked directly by the user, outside orchestrator context.
    `completed`, stop: _"The site must be built first. Run `/study-site build`."_
 2. Read current `examCount` to determine next exam number N.
 3. Read `designChoices` for theme, exam format (card-style or classic-style),
-   and question types.
-4. Ask the user:
-   - **Focus areas** — specific lectures or topics to emphasize, or "balanced"
-     for even coverage.
-   - **Question count** — default 30, suggest range 20-50, maximum 60.
-   - **Difficulty preference** — standard distribution (30/50/20) or a custom
-     skew toward harder or easier.
+   question types, and questions per exam.
+4. Use defaults for standalone invocation:
+   - **Focus areas:** balanced (even coverage across all lectures).
+   - **Question count:** from `designChoices.questionsPerExam` (default 30).
+   - **Difficulty preference:** standard distribution (30/50/20).
+   - If the user provided specific parameters in their invocation command
+     (e.g., `/study-site add-exam focus:lectures 1-3`), use those instead.
 5. Proceed to Step 1: Question Generation.
 
 ## Entry Path B: Phase 6 (orchestrator)
@@ -89,13 +89,13 @@ Generate questions following these rules:
   (from pipeline-status.json or design spec). Types defined in
   `references/exam-format.md`: `multiple-choice`, `multiple-multiple-choice`,
   `short-answer`, `long-answer`.
-- **Coverage** — if no focus areas, distribute questions evenly across all
-  lectures. If focus areas were specified, weight 60% of questions toward those
-  topics and 40% across remaining material.
+- **Coverage** — Read the `type` field from each study note's frontmatter to distinguish lecture vs. supplementary content (if `type` is absent, treat as `lecture`).
+  - **No focus areas:** Allocate 80% of questions to `type: lecture` notes (distributed evenly among lectures) and 20% to `type: supplementary` notes (distributed evenly among supplementary notes). If there are no supplementary notes, allocate 100% to lectures.
+  - **With focus areas:** Weight 60% toward focus topics and 40% across remaining material, as before. When determining which notes to draw from for focus areas, include supplementary notes if their `topics` match the focus area.
 - **Question cap** — never exceed 60 questions per exam regardless of user
   request. If the user asks for more, explain the cap and proceed with 60.
 - **Balance** — no single lecture should account for more than 40% of total
-  questions unless there are only two or lectures in the focus set.
+  questions unless there are only two lectures in the focus set. No single supplementary note should account for more than 10% of total questions unless it is explicitly in the focus set.
 
 Tag each question with: `sourceLecture`, `difficulty`, `type`, and an `id`
 following the `examId-q-NNN` format from `references/exam-format.md`.
@@ -120,21 +120,27 @@ Set a `verified` flag on each question:
 
 ## Step 3: Self-Audit Pass
 
-After verification, perform a second independent review. This catches errors the
-first pass normalized — a fresh look with skeptical eyes.
+**Autonomous mode:** After verification, perform a second independent review and
+auto-resolve all flagged questions without user interaction.
 
 1. Collect all questions where `verified` is `false`.
 2. Collect any questions where the answer is ambiguous or debatable.
-3. For each flagged item, present to the user:
-   - The question text.
-   - The proposed answer.
-   - The verification note explaining the concern.
-   - The relevant excerpt from the study notes.
-4. Ask the user to **confirm**, **modify**, or **remove** each flagged question.
-5. Apply the user's decisions. Remove any question the user rejects.
+3. For each flagged item, apply these auto-resolution rules:
+   - **Answer not found in study notes:** Remove the question. An unverifiable
+     answer risks teaching students incorrect information.
+   - **Answer is ambiguous but partially supported:** Attempt to rewrite the
+     question to eliminate the ambiguity (narrow the scope, change wording).
+     If a clean rewrite is not possible, remove the question.
+   - **Distractor is arguably correct:** Replace the distractor with a clearly
+     wrong alternative derived from the study notes.
+4. Log all auto-resolved items (removals, rewrites, distractor replacements)
+   in the exam metadata under `autoResolvedFlags` for post-build review.
+5. After auto-resolution, if the question count dropped below 80% of the
+   target (due to removals), generate replacement questions from under-
+   represented lectures to fill the gap. Verify replacements before including.
 
-If no items are flagged, report: _"All N questions verified against source
-material — no flags."_
+If no items are flagged, proceed directly: _"All N questions verified against
+source material — no flags."_
 
 ## Step 4: Write Exam Data File
 

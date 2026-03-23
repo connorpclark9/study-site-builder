@@ -5,7 +5,9 @@ description: "Use when the user wants to build a study website from course mater
 
 # Study Site Builder — Pipeline Orchestrator
 
-You orchestrate a 7-phase pipeline that transforms raw course materials into a fully built study website. You sequence phases, verify outputs, manage context between phases, recover from errors, and interact with the user at decision points.
+You orchestrate a 7-phase pipeline that transforms raw course materials into a fully built study website. You sequence phases, verify outputs, manage context between phases, and recover from errors autonomously.
+
+**One-shot autonomy:** All user questions are asked upfront during Startup. After that, the entire pipeline runs to completion without user interaction. Mid-pipeline decisions (audit corrections, flagged exam questions, mobile fixes) are resolved automatically using sensible defaults documented in each phase.
 
 **Project paths are relative to the project root** — the directory containing `pipeline-status.json`.
 
@@ -27,27 +29,84 @@ Each phase is a separate skill invoked via the Skill tool. Phases run in this or
 
 ## Startup
 
+All user interaction happens here. After Startup completes, the pipeline runs autonomously to completion.
+
 ### 1. Check for Existing Pipeline
 
 Read `pipeline-status.json`. If it exists and has completed phases:
 
 - Show the user which phases are completed (with timestamps) and which phase comes next.
 - Ask: *"Resume from phase {next}, or start fresh?"*
-- **Resume:** Skip completed phases, continue from the next pending one.
+- **Resume:** Skip completed phases, continue from the next pending one. If `designChoices` already exists in `pipeline-status.json`, skip the preference questions below.
 - **Fresh start:** Delete `pipeline-status.json` and all output directories (`study-notes/`, `synthesis/`, `audit/`, `design/`, `site/`).
 
-### 2. Initialize a New Pipeline
+### 2. Gather All User Input
 
-If no `pipeline-status.json` exists (or the user chose fresh start):
+If no `pipeline-status.json` exists (or the user chose fresh start), gather everything needed for the entire pipeline in one interaction. Present all questions together so the user can answer them at once.
 
-1. Ask the user for the course name.
-2. Verify `source-materials/` exists and contains files. If not, tell the user to create it and add their course files (PDFs, PPTXs, DOCXs, XLSX).
-3. List the discovered files and confirm with the user.
-4. **Locate the plugin directory.** The plugin's templates, references, and shared JS live in the plugin installation directory — not the project. Find it by searching for the `templates/` directory that contains `page-templates/` and `themes/`. Try these locations in order:
+**Ask the user all of the following in a single prompt:**
+
+```
+I need a few things before I can build your study site. You can answer all at once or I'll use defaults for anything you skip.
+
+1. **Course name** — What is this course called?
+
+2. **Theme** — Choose a visual theme:
+   - Midnight Blue (default) — Dark navy with bright accents
+   - Forest Green — Natural greens with earth tones
+   - Slate Minimal — Clean grays with minimal decoration
+   - Sunset Coral — Warm coral and orange tones
+   - Warm Ivory — Light cream with soft accents
+
+3. **Exam format** — How should practice exams look?
+   - Card Style (default) — One question at a time with smooth transitions
+   - Classic Style — All questions on one scrollable page
+
+4. **Pages** — Which pages to include? (default: all)
+   - Home, Study Map, Flashcards, Last-Minute Review, Sample Questions, Practice Exams
+
+5. **Exam config** (if Practice Exams selected):
+   - How many practice exams? (1-5, default: 2)
+   - Question types? (Multiple Choice, Multiple-Multiple Choice, Short Answer, Long Answer; default: MC + Short Answer)
+   - Questions per exam? (20-50, default: 30)
+
+6. **Study preferences:**
+   - Style: Visual (default) / Reading / Practice
+   - Detail level: Brief / Moderate (default) / Comprehensive
+   - Organization: By lecture (default) / By theme / Alphabetical
+
+Defaults are shown in parentheses — just say "defaults" to use them all.
+```
+
+If the user provides partial answers, fill in defaults for anything not specified. If the user says "defaults" or equivalent, use all default values without further questions.
+
+**Default values:**
+- Theme: `midnight-blue`
+- Exam format: `card-style`
+- Pages: `["index", "study-map", "flashcards", "last-minute-review", "sample-questions", "practice-exams"]`
+- Exam count: 2
+- Question types: `["multiple-choice", "short-answer"]`
+- Questions per exam: 30
+- Style: `visual`
+- Detail: `moderate`
+- Organization: `default`
+
+**Validation:** If any value is outside its valid range (exam count > 5, questions > 50), explain the constraint and use the nearest valid value rather than re-asking.
+
+### 3. Initialize Pipeline
+
+After gathering user input:
+
+1. Verify `source-materials/` exists and contains files. If not, tell the user to create it and add their course files (PDFs, PPTXs, DOCXs, XLSX), then stop.
+2. List the discovered files for the user's awareness (no confirmation needed — proceed immediately).
+3. **Locate the plugin directory.** The plugin's templates, references, and shared JS live in the plugin installation directory — not the project. Find it by searching for the `templates/` directory that contains `page-templates/` and `themes/`. Try these locations in order:
    - Glob for `**/templates/page-templates/index.html` starting from common plugin paths.
    - The plugin is named `study-site-builder` — search for a directory with that name containing a `.claude-plugin/plugin.json` file.
    - Once found, record the absolute path as `pluginDir` in `pipeline-status.json` so all downstream phases can resolve template and reference paths without re-searching.
-5. Create `pipeline-status.json` per the schema in `references/pipeline-status-format.md`, with all phases set to `"pending"`. Include the `pluginDir` field.
+4. Create `pipeline-status.json` per the schema in `references/pipeline-status-format.md`, with all phases set to `"pending"`. Include the `pluginDir` field.
+5. Store all user preferences in `designChoices` in `pipeline-status.json` immediately (not in Phase 4). This lets the site-designer phase run without asking questions.
+
+From this point forward, the pipeline runs autonomously. Do not ask the user any questions — make autonomous decisions using the defaults and auto-resolution rules documented in each phase.
 
 ## Checkpoint Protocol
 
@@ -104,11 +163,11 @@ Run the checkpoint protocol.
 
 Invoke the `content-auditor` skill.
 
-**User interaction:** This phase pauses to present flagged items for the user to review. Wait for the skill to complete, including all user decisions on flagged items.
+**Autonomous mode:** This phase auto-accepts all suggested corrections without user interaction. Flagged items are logged in the audit report for reference but corrections are applied automatically.
 
 **Verification:**
 - `audit/audit-report.md` exists.
-- All user-approved corrections have been applied to `study-notes/` and `synthesis/` files.
+- All auto-accepted corrections have been applied to `study-notes/` and `synthesis/` files.
 
 Run the checkpoint protocol.
 
@@ -116,12 +175,10 @@ Run the checkpoint protocol.
 
 Invoke the `site-designer` skill.
 
-**User interaction:** This phase asks multiple preference questions (theme, exam format, pages, learning style). Wait for all choices to be gathered.
+**Autonomous mode:** This phase reads `designChoices` from `pipeline-status.json` (populated during Startup) and writes the design spec without asking questions.
 
 **Verification:**
 - `design/design-spec.md` exists with all required sections: Theme, Exam Format, Pages, Exam Configuration, Learning Preferences.
-
-After checkpoint, also store `designChoices` and `examCount` in `pipeline-status.json`.
 
 Run the checkpoint protocol.
 
@@ -153,9 +210,11 @@ Run the checkpoint protocol.
 
 Invoke the `mobile-checker` skill.
 
+**Autonomous mode:** If critical issues are found, automatically attempt to fix them by re-running the relevant site-builder subagent for the affected page(s). Log fixes in the mobile-checker report. Do not ask the user.
+
 **Verification:**
 - Review the mobile-checker report.
-- If critical issues are found, present them to the user and offer to re-run `site-builder` with fixes.
+- If critical issues remain after one auto-fix attempt, log them as warnings in the completion summary but do not block pipeline completion.
 
 Update `pipeline-status.json` to mark this final phase `"completed"`.
 
@@ -164,11 +223,8 @@ Update `pipeline-status.json` to mark this final phase `"completed"`.
 When a phase fails (skill error, missing files, malformed output):
 
 1. Record the error in `pipeline-status.json` — set the phase status to `"failed"` and add an `error` string describing what went wrong.
-2. Explain the failure to the user in plain language.
-3. Offer three options:
-   - **Retry** — Reset the phase to `"pending"` and re-invoke it.
-   - **Skip** — Mark as `"skipped"` and continue. Warn the user which downstream phases will be affected and how.
-   - **Abort** — Stop the pipeline. All completed work is preserved and the user can resume later.
+2. **Auto-retry once.** Reset the phase to `"pending"` and re-invoke it. Most failures are transient (context limits, tool timeouts) and succeed on retry.
+3. **If retry also fails**, log the error and continue to the next phase if possible. If the failed phase's output is required by the next phase (e.g., content-ingest must succeed before concept-mapper), stop the pipeline and report the failure to the user with the error details and all completed work preserved for resumption.
 
 ## Completion
 
@@ -212,7 +268,7 @@ When all 7 phases are complete:
 
    **Option C: Netlify / Vercel** — Drag the `site/` folder into the deploy UI, or configure the publish directory as `site/`.
 
-4. Ask if the user wants adjustments (re-run a phase, change theme, add more exams).
+4. Let the user know they can ask to re-run phases, change the theme, or add more exams at any time.
 
 The final `pipeline-status.json` should look like this (all phases completed, `currentPhase` set to `"done"`):
 

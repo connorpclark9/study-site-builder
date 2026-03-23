@@ -73,8 +73,21 @@ and arrows.]
     → Project Valuation (Lecture 8)
 ```
 
+## Supplementary Topics
+
+### {Supplementary Note Title}
+**Source Type:** {Case Study | Supplementary Reading | Practice Problems | Reference}
+**Related Lectures:** Lectures [list of lectures with topical overlap]
+**Core Concepts:** [3-5 key concepts from this supplementary material]
+**Key Insight:** [Most important takeaway — what does this add beyond the lectures?]
+
+[Repeat for each study note where type = supplementary]
+```
+
 Guidelines:
-- Every lecture in study-notes/ gets its own section under Lecture Progression. No lecture is skipped.
+- Every study note with `type: lecture` in its frontmatter gets its own section under Lecture Progression. No lecture is skipped.
+- Every study note with `type: supplementary` gets its own section under Supplementary Topics. Do NOT include supplementary notes in Lecture Progression.
+- If a study note has no `type` field, treat it as `type: lecture` (backward compatibility).
 - Lecture titles match the `title` frontmatter from the study notes.
 - Every driving question is answerable from that lecture's material alone.
 - The dependency graph only shows real dependencies grounded in the content — do not fabricate connections.
@@ -119,7 +132,9 @@ Write `synthesis/last-minute-review.md` with this structure:
 Guidelines:
 - Be concise — the student already knows the material. Explain nothing; remind everything.
 - Focus on what is most testable and most commonly confused.
-- Every lecture is represented.
+- Every `type: lecture` study note gets its own section in the main review.
+- `type: supplementary` study notes go in a separate "Supplementary Material" section at the end of the review, after the Don't Forget checklist. This keeps the core review focused on lecture content while still including supplementary concepts for completeness.
+- If a study note has no `type` field, treat it as `type: lecture` (backward compatibility).
 - The formula sheet consolidates all formulas from all lectures into a single table.
 - Include at least 3 Critical Distinctions comparisons across the full review.
 - Include at least 5 items in the Don't Forget checklist.
@@ -140,8 +155,9 @@ Generate flashcards following the schema in `references/flashcard-format.md`. Th
      - `term`: exact term name from the glossary.
      - `definition`: glossary definition condensed to 300 characters max. The 300-char limit exists because flashcard UIs truncate longer text, making excess content invisible to the student. Condense by removing examples and parentheticals while keeping accuracy.
      - `relatedTerms`: from `[Related: ...]` annotations. Leave these as-is for now — dangling references are cleaned up in the merge step.
-     - `sourceLecture`: `"Lecture N"` (no zero-padding).
+     - `sourceLecture`: For `type: lecture` notes, use `"Lecture N"` (no zero-padding). For `type: supplementary` notes, use the study note title (e.g., `"Case Studies: Market Entry Strategies"`).
    - Write the deck as a JSON object: `{ "id": "lecture-NN", "title": "...", "cards": [...] }`
+   - For supplementary decks, the `title` field should use the study note title (not the "Lecture N: ..." format).
    - Cards must be alphabetical by `term` within the deck.
    - **Write the file to disk immediately** before moving to the next study note. Do not accumulate multiple decks in memory.
 3. **Merge into `synthesis/flashcards.json`** after all per-lecture files are written:

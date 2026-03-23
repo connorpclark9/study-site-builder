@@ -14,9 +14,12 @@ Each source lecture or topic group produces exactly one study notes file.
 
 Every study notes file MUST begin with a YAML frontmatter block containing these required fields:
 
+**Lecture example:**
+
 ```yaml
 ---
 title: "Lecture 5: Capital Budgeting and NPV"
+type: lecture
 source_files:
   - "materials/lecture-05-slides.pdf"
   - "materials/lecture-05-notes.docx"
@@ -30,14 +33,32 @@ lecture_number: 5
 ---
 ```
 
+**Supplementary example:**
+
+```yaml
+---
+title: "Case Studies: Market Entry Strategies"
+type: supplementary
+source_files:
+  - "materials/case-study-uber-expansion.pdf"
+  - "materials/case-study-airbnb-international.pdf"
+topics:
+  - "Market Entry"
+  - "International Expansion"
+  - "Competitive Strategy"
+lecture_number: 13
+---
+```
+
 ### Field Definitions
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `title` | string | Yes | Human-readable title in format "Lecture N: Topic Name" |
+| `title` | string | Yes | For `type: lecture`: format "Lecture N: Topic Name". For `type: supplementary`: descriptive title without "Lecture N:" prefix (e.g., "Case Studies: Market Entry Strategies"). |
+| `type` | string | Yes | Content type: `"lecture"` for core lecture material, `"supplementary"` for case studies, readings, practice problems, and reference material. If absent, downstream consumers treat as `"lecture"` for backward compatibility. |
 | `source_files` | string[] | Yes | Relative paths to every source file used to produce this note |
 | `topics` | string[] | Yes | List of main topics covered, used for cross-referencing and exam generation |
-| `lecture_number` | integer | Yes | Numeric lecture identifier, used for ordering and deck/card ID generation |
+| `lecture_number` | integer | Yes | Numeric identifier used for ordering and deck/card ID generation. Lectures are numbered 1..N in course order. Supplementary notes are numbered N+1, N+2, ... (appended after the last lecture). |
 
 ## Required Sections
 

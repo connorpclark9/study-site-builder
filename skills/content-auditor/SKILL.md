@@ -113,7 +113,15 @@ phase: content-auditor
 - [Brief confirmation notes]
 
 ### Lecture 2: {Title}
-[Repeat for each lecture]
+[Repeat for each type: lecture study note]
+
+### Supplementary Notes
+
+#### {Supplementary Note Title}
+- Key definitions verified against source materials
+- [Brief confirmation notes]
+
+[Repeat for each type: supplementary study note]
 
 ## Flagged Items
 
@@ -137,37 +145,38 @@ phase: content-auditor
 
 ## Conceptual Map Issues
 [Any flagged relationship or dependency issues]
+
+## Source Coverage
+[Verify every file in source-materials/ is referenced by at least one study note's
+source_files field. List any source files not covered by any study note — these
+represent dropped content that needs to be ingested.]
 ```
 
-## Step 4: User Interaction
+## Step 4: Auto-Resolve Flagged Items
 
-Present flagged items to the user for review using structured prompts.
+**Autonomous mode:** All flagged items are resolved automatically without user interaction. The pipeline runs end-to-end without pausing.
 
-For each flagged item, present:
+**Resolution rules:**
 
-1. **The issue:** What was found and where.
-2. **The current content:** What the study note or flashcard currently says.
-3. **The suggested correction:** What the source material indicates it should say.
-4. **Options:**
-   - **Accept correction** — Apply the suggested correction.
-   - **Keep original** — The content is intentionally different (e.g., simplified for study purposes).
-   - **Custom edit** — The user provides their own wording.
+1. **Factual corrections (definition, formula, numerical errors):** Auto-accept the suggested correction. The source material is authoritative — if the study note disagrees with the source, the source wins.
+2. **Missing glossary terms:** Auto-add them in alphabetical order using the source material's definition.
+3. **Flashcard definition inaccuracies:** Auto-accept the suggested correction, ensuring the result stays within the 300-character limit.
+4. **Conceptual map relationship errors:** Auto-accept the suggested correction.
+5. **Ambiguous flags (source material itself is unclear):** Keep the original content and log the ambiguity in the audit report for the user to review post-build.
 
-Handling edge cases:
-- If there are more than 10 flagged items, group them by lecture and present one lecture at a time to avoid overwhelming the user.
-- If there are zero flagged items, inform the user that all content verified successfully and skip to Step 6.
-- If the user gives an ambiguous response (e.g., "sure" without specifying which option), ask for clarification: "Just to confirm — accept the suggested correction, keep the original, or provide a custom edit?"
-- If the user wants to batch-approve (e.g., "accept all corrections"), confirm once and apply all suggested corrections.
+If there are zero flagged items, proceed directly to Step 6.
 
-## Step 5: Correction Application
+All auto-resolved corrections are logged in the audit report under a "Auto-Resolved Corrections" section so the user can review them after the pipeline completes.
 
-For each flag where the user approved a correction:
+## Step 5: Apply Corrections
 
-1. **Study note corrections:** Open the relevant `study-notes/` file and use the Edit tool to replace the incorrect content. Rationale: these files are the primary reading material, so accuracy here directly affects learning.
-2. **Missing glossary terms:** Add the term in alphabetical order in the glossary section, using the format `**Term Name**: Definition. [Related: Other Terms]`. Alphabetical ordering matters because the site-builder generates a combined glossary index that assumes sorted input.
-3. **Flashcard corrections:** Update the definition in `synthesis/flashcards.json`. After editing, verify the definition still fits within 300 characters. If it exceeds the limit, trim to fit while preserving accuracy — a truncated-but-correct definition is better than a full-but-wrong one.
-4. **Conceptual map corrections:** Update the relationship in `synthesis/conceptual-map.md`. Rationale: the study-map page renders these relationships visually, so a wrong dependency arrow misleads students about prerequisite knowledge.
-5. After all corrections are applied, update the audit report to note which corrections were applied and which were kept as-is.
+Apply all auto-resolved corrections:
+
+1. **Study note corrections:** Open the relevant `study-notes/` file and use the Edit tool to replace the incorrect content.
+2. **Missing glossary terms:** Add the term in alphabetical order in the glossary section, using the format `**Term Name**: Definition. [Related: Other Terms]`.
+3. **Flashcard corrections:** Update the definition in `synthesis/flashcards.json`. After editing, verify the definition still fits within 300 characters. If it exceeds the limit, trim to fit while preserving accuracy.
+4. **Conceptual map corrections:** Update the relationship in `synthesis/conceptual-map.md`.
+5. After all corrections are applied, update the audit report with an "Auto-Resolved Corrections" section listing every correction made and its rationale, plus a "Kept As-Is" section for any ambiguous flags that were not corrected.
 
 ## Step 6: Source of Truth Declaration
 
@@ -176,7 +185,7 @@ After all corrections have been applied, append to the audit report:
 ```markdown
 ## Verification Complete
 
-All flagged items have been reviewed by the user and corrections applied where approved.
+All flagged items have been auto-resolved and corrections applied.
 
 **The markdown files in `study-notes/` and `synthesis/` are now the verified source of truth
 for all downstream phases (site-builder, exam-generator).** No further reference to

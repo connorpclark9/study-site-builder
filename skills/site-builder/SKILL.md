@@ -205,6 +205,16 @@ Include the appropriate section below **only** in the sub-PRD for that page type
 - Do NOT use `<details>/<summary>` elements, sidebar table of contents, or dependency graph visualizations
 - Cross-references between concepts become `.link-tag` elements inside `.link-tags`
 
+**Supplementary Material section:**
+
+After the lecture progression topic-blocks, add a visually distinct "Supplementary Material" section for study notes with `type: supplementary`. Read each supplementary study note from `study-notes/` and render them using the same `.topic-block` / `.subtopic` pattern, but with these differences:
+- The `.topic-eyebrow` label says "Supplementary" instead of a lecture range (e.g., "Lectures 5-7")
+- Group supplementary blocks by source type where possible (e.g., "Case Studies", "Practice Problems", "Additional Readings")
+- Include `.link-tag` cross-references that connect supplementary concepts back to the relevant lecture topic-blocks
+- If there are no supplementary study notes, omit this section entirely
+
+To determine which study notes are supplementary: read the `type` field from each study note's YAML frontmatter. If `type: supplementary`, it goes in this section. If `type: lecture` or `type` is absent, it goes in the main lecture progression.
+
 #### Last-Minute Review (`last-minute-review`)
 
 Transform `synthesis/last-minute-review.md` into styled HTML:
@@ -218,7 +228,8 @@ Transform `synthesis/last-minute-review.md` into styled HTML:
 
 Generate curated study questions from `study-notes/`:
 - Read all files in `study-notes/`
-- Generate 3-5 questions per lecture covering key concepts
+- Generate 3-5 questions per `type: lecture` study note covering key concepts
+- For `type: supplementary` study notes, generate 1-3 questions each, grouped in a separate "Supplementary Topics" section at the bottom
 - Questions should be simpler than exam questions — focused on comprehension
 - Each question has a spoiler-revealed answer using `<details><summary>Show Answer</summary>` pattern
 - Group questions by lecture/topic with clear headings
