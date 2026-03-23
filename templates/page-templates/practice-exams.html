@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Practice Exams — {{SITE_NAME}}</title>
+  <link rel="stylesheet" href="{{THEME_CSS}}">
+  <style>
+    .practice-exams-page {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: var(--padding-page);
+    }
+
+    .practice-exams-page header {
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .practice-exams-page h1 {
+      color: var(--white);
+      margin-bottom: var(--spacing);
+    }
+
+    .practice-exams-page > .subtitle {
+      color: var(--text-mute);
+      font-size: 1rem;
+    }
+
+    .exam-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: var(--spacing-lg);
+    }
+
+    .exam-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: var(--padding-card);
+      display: flex;
+      flex-direction: column;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .exam-card:hover {
+      border-color: var(--accent);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    }
+
+    .exam-card h2 {
+      font-size: 1.15rem;
+      color: var(--white);
+      margin: 0 0 0.5rem;
+    }
+
+    .exam-card p {
+      color: var(--text-mute);
+      font-size: 0.9rem;
+      line-height: 1.5;
+      margin: 0 0 1rem;
+      flex: 1;
+    }
+
+    .exam-card .exam-meta-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-bottom: 1rem;
+    }
+
+    .exam-card .meta-tag {
+      font-size: 0.75rem;
+      padding: 0.15rem 0.5rem;
+      background: var(--bg-sub);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-dim);
+    }
+
+    .exam-card .btn-start {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.6rem 1.25rem;
+      background: var(--accent);
+      color: var(--bg-deep);
+      font-weight: 600;
+      font-size: 0.9rem;
+      border: none;
+      border-radius: var(--radius-sm);
+      text-decoration: none;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .exam-card .btn-start:hover {
+      background: var(--accent-hi);
+    }
+
+    @media (max-width: 480px) {
+      .exam-cards {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="practice-exams-page">
+    <header role="banner">
+      <h1>Practice Exams</h1>
+      <p class="subtitle">Comprehensive practice exams to test your knowledge across all course material</p>
+    </header>
+
+    <main role="main">
+      <div class="exam-cards">
+        {{PRACTICE_EXAMS_CONTENT}}
+      </div>
+    </main>
+  </div>
+
+  <script src="{{NAV_JS}}" defer></script>
+</body>
+</html>

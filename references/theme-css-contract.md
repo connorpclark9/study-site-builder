@@ -227,6 +227,25 @@ Brief notes about the theme's design philosophy, intended use cases,
 or color palette inspiration.
 ```
 
+## Study Map CSS Classes
+
+The study-map page uses the following CSS classes which are defined in the page template's `<style>` block (not in the theme CSS). These classes are documented here for reference so theme authors understand the DOM structure:
+
+- `.topic-block` — collapsible topic container; toggles `.open` class
+- `.topic-header` — clickable header row with icon, eyebrow, title, description, pill, chevron
+- `.topic-body` — hidden by default, shown when `.topic-block.open`
+- `.topic-icon`, `.topic-eyebrow`, `.topic-title`, `.topic-desc`, `.topic-pill`, `.topic-right` — header sub-elements
+- `.chevron`, `.sub-chev` — rotation indicators for open/closed state
+- `.subtopic` — individual concept card; toggles `.open` class
+- `.subtopic-grid` — responsive grid container for subtopic cards
+- `.subtopic-hdr` — clickable subtopic header with dot indicator and title
+- `.subtopic-body` — hidden by default, shown when `.subtopic.open`
+- `.dot` — small accent-colored circle indicator
+- `.section-label` — uppercase label for content sections
+- `.prose` — body text within subtopic
+- `.bullets` — styled list within subtopic
+- `.link-tags`, `.link-tag` — connection/relationship tags linking related concepts
+
 ## Validation Checklist
 
 Before a theme is considered complete, verify:

@@ -6,175 +6,283 @@
   <title>Study Map — {{SITE_NAME}}</title>
   <link rel="stylesheet" href="{{THEME_CSS}}">
   <style>
-    .study-map-layout {
-      display: grid;
-      grid-template-columns: 240px 1fr;
-      gap: var(--spacing-lg);
+    .study-map-page {
       max-width: var(--max-width);
       margin: 0 auto;
       padding: var(--padding-page);
     }
 
-    @media (max-width: 768px) {
-      .study-map-layout {
-        grid-template-columns: 1fr;
-      }
-      .toc-sidebar {
-        position: static;
-        max-height: none;
-      }
-    }
-
-    /* Sidebar table of contents */
-    .toc-sidebar {
-      position: sticky;
-      top: var(--spacing-lg);
-      align-self: start;
-      max-height: calc(100vh - 3rem);
-      overflow-y: auto;
-      padding: var(--spacing);
-      background: var(--bg-sub);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-    }
-
-    .toc-sidebar h2 {
-      font-size: 0.9rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--text-mute);
-      margin: 0 0 var(--spacing);
-    }
-
-    .toc-sidebar ol {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
-
-    .toc-sidebar li {
-      margin-bottom: 0.25rem;
-    }
-
-    .toc-sidebar a {
-      display: block;
-      padding: 0.3rem 0.5rem;
-      font-size: 0.85rem;
-      color: var(--accent);
-      text-decoration: none;
-      border-radius: var(--radius-sm);
-    }
-
-    .toc-sidebar a:hover,
-    .toc-sidebar a:focus-visible {
-      background: var(--bg-deep);
-    }
-
-    .toc-sidebar .toc-subtopic {
-      padding-left: 1rem;
-    }
-
-    /* Main content area */
-    .study-map-content section {
+    .study-map-page header {
       margin-bottom: var(--spacing-lg);
     }
 
-    .study-map-content details {
+    .study-map-page h1 {
+      color: var(--white);
+      margin-bottom: var(--spacing);
+    }
+
+    .study-map-page > .subtitle {
+      color: var(--text-mute);
+      font-size: 1rem;
+    }
+
+    /* Topic blocks */
+    .topic-block {
       border: 1px solid var(--border);
       border-radius: var(--radius);
       margin-bottom: var(--spacing);
       background: var(--bg-card);
+      overflow: hidden;
     }
 
-    .study-map-content details[open] > summary {
-      border-bottom: 1px solid var(--border);
-    }
-
-    .study-map-content summary {
-      padding: var(--spacing) var(--padding-card);
-      font-weight: 600;
+    .topic-header {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing);
+      padding: var(--padding-card);
       cursor: pointer;
+      user-select: none;
+      transition: background 0.15s;
+    }
+
+    .topic-header:hover {
+      background: var(--bg-sub);
+    }
+
+    .topic-icon {
+      font-size: 1.5rem;
+      flex-shrink: 0;
+    }
+
+    .topic-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .topic-eyebrow {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 0.15rem;
+    }
+
+    .topic-title {
+      font-size: 1.1rem;
+      font-weight: 700;
       color: var(--white);
-      list-style: none;
+      margin-bottom: 0.25rem;
     }
 
-    .study-map-content summary::before {
-      content: "\25B6 ";
-      font-size: 0.75em;
-      display: inline-block;
-      transition: transform 0.2s ease;
+    .topic-desc {
+      font-size: 0.88rem;
+      color: var(--text-mute);
+      line-height: 1.4;
     }
 
-    .study-map-content details[open] > summary::before {
+    .topic-right {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing);
+      flex-shrink: 0;
+    }
+
+    .topic-pill {
+      font-size: 0.75rem;
+      padding: 0.2rem 0.6rem;
+      background: var(--bg-sub);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-mute);
+      white-space: nowrap;
+    }
+
+    .chevron {
+      width: 20px;
+      height: 20px;
+      border: none;
+      background: none;
+      color: var(--text-dim);
+      transition: transform 0.25s;
+      font-size: 0.85rem;
+    }
+
+    .chevron::after {
+      content: "\25B6";
+    }
+
+    .topic-block.open .chevron {
       transform: rotate(90deg);
     }
 
-    .study-map-content summary::-webkit-details-marker {
-      display: none;
-    }
-
     .topic-body {
-      padding: var(--spacing) var(--padding-card);
+      display: none;
+      padding: 0 var(--padding-card) var(--padding-card);
     }
 
-    /* Nested subtopics */
+    .topic-block.open .topic-body {
+      display: block;
+    }
+
+    /* Subtopic grid */
+    .subtopic-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: var(--spacing);
+    }
+
+    .section-label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-dim);
+      font-weight: 600;
+      margin-bottom: var(--spacing);
+      padding-bottom: 0.35rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* Subtopic cards */
     .subtopic {
-      margin-left: var(--spacing);
-      border-left: 2px solid var(--accent);
-      padding-left: var(--spacing);
-      margin-top: var(--spacing);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--bg-sub);
+      overflow: hidden;
     }
 
-    /* Relationship indicators */
-    .related-topics {
+    .subtopic-hdr {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.65rem 0.85rem;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.15s;
+    }
+
+    .subtopic-hdr:hover {
+      background: var(--bg-deep);
+    }
+
+    .subtopic-hdr .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      flex-shrink: 0;
+      margin-right: 0.5rem;
+    }
+
+    .subtopic-hdr span {
+      flex: 1;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--white);
+    }
+
+    .sub-chev {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      transition: transform 0.2s;
+    }
+
+    .sub-chev::after {
+      content: "\25B6";
+    }
+
+    .subtopic.open .sub-chev {
+      transform: rotate(90deg);
+    }
+
+    .subtopic-body {
+      display: none;
+      padding: 0.65rem 0.85rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .subtopic.open .subtopic-body {
+      display: block;
+    }
+
+    .subtopic-body .prose {
+      font-size: 0.88rem;
+      color: var(--text);
+      line-height: 1.55;
+      margin-bottom: 0.5rem;
+    }
+
+    .subtopic-body .bullets {
+      list-style: disc;
+      padding-left: 1.25rem;
+      margin: 0;
+    }
+
+    .subtopic-body .bullets li {
+      font-size: 0.85rem;
+      color: var(--text);
+      line-height: 1.45;
+      margin-bottom: 0.25rem;
+    }
+
+    /* Link tags (connections) */
+    .link-tags {
       display: flex;
       flex-wrap: wrap;
-      gap: 0.4rem;
-      margin-top: var(--spacing);
-      padding-top: var(--spacing);
-      border-top: 1px dashed var(--border);
+      gap: 0.3rem;
+      margin-top: 0.5rem;
     }
 
-    .related-tag {
-      font-size: 0.75rem;
-      padding: 0.15rem 0.5rem;
-      background: var(--bg-sub);
+    .link-tag {
+      font-size: 0.72rem;
+      padding: 0.1rem 0.45rem;
+      background: var(--bg-deep);
       color: var(--accent);
       border-radius: var(--radius-sm);
       text-decoration: none;
     }
 
-    .related-tag:hover,
-    .related-tag:focus-visible {
-      background: var(--bg-deep);
+    .link-tag:hover {
+      background: var(--bg-card);
       color: var(--accent-hi);
+    }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      .subtopic-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .topic-header {
+        flex-wrap: wrap;
+      }
+
+      .topic-right {
+        width: 100%;
+        justify-content: flex-end;
+        margin-top: 0.35rem;
+      }
     }
   </style>
 </head>
 <body>
-  <header role="banner">
-    <h1>Study Map</h1>
-  </header>
+  <div class="study-map-page">
+    <header role="banner">
+      <h1>Study Map</h1>
+      <p class="subtitle">Explore the course concepts organized by topic and lecture</p>
+    </header>
 
-  <div class="study-map-layout">
-    <aside class="toc-sidebar" aria-label="Table of contents">
-      <h2>Contents</h2>
-      {{TOC_CONTENT}}
-    </aside>
-
-    <main class="study-map-content" role="main">
-      {{STUDY_MAP_CONTENT}}
+    <main role="main">
+      <div id="topics-container">
+        {{STUDY_MAP_CONTENT}}
+      </div>
     </main>
   </div>
 
   <script src="{{NAV_JS}}" defer></script>
   <script>
-    // Expand all details elements by default
-    document.addEventListener('DOMContentLoaded', function () {
-      document.querySelectorAll('.study-map-content details').forEach(function (el) {
-        el.setAttribute('open', '');
-      });
-    });
+    function toggleTopic(id) { document.getElementById(id)?.classList.toggle('open'); }
+    function toggleSub(id) { document.getElementById(id)?.classList.toggle('open'); }
   </script>
 </body>
 </html>

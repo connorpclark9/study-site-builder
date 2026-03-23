@@ -419,6 +419,23 @@
   transform: none;
 }
 
+.btn-reset {
+  padding: 0.7rem 2rem;
+  font-size: 1rem;
+  border-radius: 8px;
+  margin-left: 0.75rem;
+  background: var(--bg-sub);
+  border: 1px solid var(--border);
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn-reset:hover {
+  border-color: var(--accent);
+  background: var(--bg-deep);
+}
+
 /* ── Score Summary ── */
 .score-summary {
   margin-top: 1.25rem;

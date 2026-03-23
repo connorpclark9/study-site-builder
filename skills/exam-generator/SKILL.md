@@ -173,11 +173,14 @@ schema in `references/exam-format.md`. Key requirements from that schema:
 
 1. Read `site/data/nav-config.json`. If missing, stop: _"nav-config.json not
    found. The site structure may be incomplete. Run `/study-site build`."_
-2. Find the "Exams" section in the navigation structure.
-3. Append a new entry:
-   - Title: "Practice Exam N" (or descriptive title).
-   - Path: `exams/practice-exam-{N}.html`.
-4. Write the updated JSON back.
+2. Check if a `"practice-exams"` core page entry already exists in the pages array.
+   If not, add one: `{ "id": "practice-exams", "title": "Practice Exams", "path": "practice-exams.html", "type": "core" }`.
+3. Do NOT add individual exam entries (e.g., "Practice Exam 1") to the nav config.
+   Individual exams are linked from the practice-exams landing page, not the nav bar.
+4. If `practice-exams.html` does not exist in `site/`, generate it from the
+   `{pluginDir}/templates/page-templates/practice-exams.html` template, listing
+   all available exams as cards with links to `exams/practice-exam-N.html`.
+5. Write the updated nav-config.json back.
 
 ## Step 7: Update Pipeline Status
 

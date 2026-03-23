@@ -130,11 +130,15 @@ Exam pages are generated from exam JSON files. New exams can be added without mo
    - Home: `index.html`
    - Flashcards: `flashcards.html`
 
+### Practice Exams Landing Page Rule
+
+When the site has practice exams, the nav config MUST include a single "Practice Exams" core page entry (`practice-exams.html`) instead of listing individual exam pages. Individual exams are linked from the practice-exams landing page, not from the nav bar. This prevents nav bar clutter and broken navigation from exam subdirectories.
+
 ### Update Rules
 
-1. **Append-only for exams.** When a new exam is generated, its page entry is appended to the end of the `pages` array. Existing entries are never reordered.
+1. **Practice exams landing page.** When a new exam is generated, do NOT add individual exam entries to the nav config. Instead, ensure a single `"practice-exams"` core page entry exists. Update the practice-exams.html landing page to include the new exam.
 2. **No orphaned entries.** Every entry in `pages` MUST correspond to an existing HTML file. If a page is removed, its nav entry must also be removed.
-3. **No orphaned pages.** Every generated HTML file MUST have a corresponding entry in `pages`. A page without a nav entry is unreachable.
+3. **No orphaned pages.** Every generated HTML file MUST have a corresponding entry in `pages`. A page without a nav entry is unreachable (except individual exam pages, which are linked from practice-exams.html).
 
 ## Validation Checklist
 

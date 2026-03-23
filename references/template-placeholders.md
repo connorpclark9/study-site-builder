@@ -23,8 +23,7 @@ Every page template uses `{{PLACEHOLDER}}` markers that the site-builder skill r
 
 | Placeholder | Description | Source |
 |---|---|---|
-| `{{TOC_CONTENT}}` | HTML ordered list for sidebar table of contents | Generated from `synthesis/conceptual-map.md` |
-| `{{STUDY_MAP_CONTENT}}` | HTML with `<details>` sections for each topic | Generated from `synthesis/conceptual-map.md` |
+| `{{STUDY_MAP_CONTENT}}` | HTML with `.topic-block` / `.subtopic` sections for each topic using the topic-block/subtopic pattern (not `<details>` elements) | Generated from `synthesis/conceptual-map.md` |
 
 ### flashcards.html
 
@@ -44,6 +43,12 @@ Every page template uses `{{PLACEHOLDER}}` markers that the site-builder skill r
 | Placeholder | Description | Source |
 |---|---|---|
 | `{{SAMPLE_QUESTIONS_CONTENT}}` | HTML question groups with spoiler answers | Generated from `study-notes/` (3-5 questions per lecture) |
+
+### practice-exams.html
+
+| Placeholder | Description | Source |
+|---|---|---|
+| `{{PRACTICE_EXAMS_CONTENT}}` | HTML cards linking to individual practice exams | Generated from available exam JSON files in `site/data/` |
 
 ### practice-exam.html
 

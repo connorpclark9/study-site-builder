@@ -3,6 +3,11 @@
  * Fetches flashcards.json and renders an interactive flashcard study tool.
  * Mounts inside an element with id="flashcard-app".
  * Uses CSS variables from the active theme for all styling.
+ *
+ * Architecture: DOM elements are built once per deck selection via buildUI().
+ * Subsequent interactions (flip, next, prev) update text content and toggle
+ * CSS classes — the DOM is never rebuilt via innerHTML during card interactions.
+ * This preserves CSS transitions (especially the 3D flip animation).
  */
 (function () {
   'use strict';
@@ -83,17 +88,18 @@
 
     /* Card */
     .sb-fc-card-area {
-      perspective: 800px;
+      perspective: 900px;
       margin-bottom: 1.25rem;
+      min-height: 260px;
     }
 
     .sb-fc-card {
       position: relative;
       width: 100%;
-      min-height: 260px;
+      height: 260px;
       cursor: pointer;
       transform-style: preserve-3d;
-      transition: transform 0.5s ease;
+      transition: transform 0.45s ease;
     }
 
     .sb-fc-card.sb-flipped {
@@ -199,6 +205,11 @@
       border: 1px solid var(--border, #e0e0e0);
       border-radius: 12px;
       background: var(--bg-card, #ffffff);
+      display: none;
+    }
+
+    .sb-fc-complete.sb-visible {
+      display: block;
     }
 
     .sb-fc-complete-icon {
@@ -230,6 +241,10 @@
     /* Responsive */
     @media (max-width: 600px) {
       .sb-fc-card {
+        height: 200px;
+      }
+
+      .sb-fc-card-area {
         min-height: 200px;
       }
 
@@ -254,15 +269,19 @@
 
   let state = {
     decks: [],
-    currentDeckIndex: 0,
+    currentDeckIndex: -1,
     currentCards: [],
     currentCardIndex: 0,
     isFlipped: false,
     reviewedCards: new Set(),
     isComplete: false,
+    isMasterDeck: false,
   };
 
   let container = null;
+
+  // Persistent DOM element references (set by buildUI)
+  let els = {};
 
   // ---------------------------------------------------------------------------
   // Session storage helpers
@@ -303,85 +322,220 @@
   }
 
   // ---------------------------------------------------------------------------
-  // Rendering
+  // Master Deck
   // ---------------------------------------------------------------------------
 
-  function render() {
-    if (!container) return;
-    const deck = state.decks[state.currentDeckIndex];
-    if (!deck) return;
+  function buildMasterDeck() {
+    const all = [];
+    state.decks.forEach(deck => {
+      if (deck.cards) all.push(...deck.cards);
+    });
+    return shuffle(all);
+  }
 
-    const totalCards = state.currentCards.length;
-    const reviewedCount = state.reviewedCards.size;
-    const progressPct = totalCards > 0 ? Math.round((reviewedCount / totalCards) * 100) : 0;
+  // ---------------------------------------------------------------------------
+  // DOM Building (called once per deck selection)
+  // ---------------------------------------------------------------------------
 
-    let html = '';
+  function buildUI() {
+    container.innerHTML = '';
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'sb-fc';
 
     // Deck selector
-    html += '<div class="sb-fc-decks" role="tablist" aria-label="Flashcard decks">';
+    const decksRow = document.createElement('div');
+    decksRow.className = 'sb-fc-decks';
+    decksRow.setAttribute('role', 'tablist');
+    decksRow.setAttribute('aria-label', 'Flashcard decks');
+
     state.decks.forEach((d, i) => {
-      const selected = i === state.currentDeckIndex ? ' sb-selected' : '';
-      html += `<button class="sb-fc-deck-btn${selected}" role="tab" aria-selected="${i === state.currentDeckIndex}" data-deck-index="${i}">${escapeHtml(d.title)}</button>`;
+      const btn = document.createElement('button');
+      btn.className = 'sb-fc-deck-btn';
+      btn.setAttribute('role', 'tab');
+      btn.setAttribute('data-deck-index', i);
+      btn.textContent = d.title;
+      decksRow.appendChild(btn);
     });
-    html += '</div>';
 
-    // Progress bar
-    html += '<div class="sb-fc-progress-wrap">';
-    html += '<div class="sb-fc-progress-label">';
-    html += `<span>${reviewedCount} of ${totalCards} cards reviewed</span>`;
-    html += `<span>${progressPct}%</span>`;
-    html += '</div>';
-    html += '<div class="sb-fc-progress-track">';
-    html += `<div class="sb-fc-progress-fill" style="width:${progressPct}%"></div>`;
-    html += '</div></div>';
+    // Master Deck button
+    const masterBtn = document.createElement('button');
+    masterBtn.className = 'sb-fc-deck-btn';
+    masterBtn.setAttribute('role', 'tab');
+    masterBtn.setAttribute('data-deck-index', 'master');
+    masterBtn.textContent = 'Master Deck';
+    decksRow.appendChild(masterBtn);
 
-    if (state.isComplete) {
-      // Completion screen
-      html += '<div class="sb-fc-complete">';
-      html += '<div class="sb-fc-complete-icon" aria-hidden="true">&#10003;</div>';
-      html += `<h3>Deck Complete!</h3>`;
-      html += `<p>You reviewed all ${totalCards} cards in "${escapeHtml(deck.title)}".</p>`;
-      html += '<button class="sb-fc-btn" data-action="restart">Study Again</button> ';
-      html += '<button class="sb-fc-btn" data-action="shuffle-restart">Shuffle &amp; Restart</button>';
-      html += '</div>';
-    } else if (totalCards === 0) {
-      html += '<div class="sb-fc-error">This deck has no cards.</div>';
-    } else {
-      // Card
-      const card = state.currentCards[state.currentCardIndex];
-      const flippedClass = state.isFlipped ? ' sb-flipped' : '';
+    wrapper.appendChild(decksRow);
 
-      html += '<div class="sb-fc-card-area">';
-      html += `<div class="sb-fc-card${flippedClass}" data-action="flip" role="button" tabindex="0" aria-label="Flashcard. Press space to flip.">`;
+    // Progress
+    const progressWrap = document.createElement('div');
+    progressWrap.className = 'sb-fc-progress-wrap';
+    progressWrap.innerHTML =
+      '<div class="sb-fc-progress-label"><span class="sb-fc-progress-reviewed"></span><span class="sb-fc-progress-pct"></span></div>' +
+      '<div class="sb-fc-progress-track"><div class="sb-fc-progress-fill"></div></div>';
+    wrapper.appendChild(progressWrap);
 
-      // Front
-      html += '<div class="sb-fc-card-face sb-fc-card-front">';
-      html += '<div class="sb-fc-card-label">Term</div>';
-      html += `<div class="sb-fc-card-text">${escapeHtml(card.term)}</div>`;
-      html += '<div class="sb-fc-hint">Click or press Space to reveal</div>';
-      html += '</div>';
+    // Card area
+    const cardArea = document.createElement('div');
+    cardArea.className = 'sb-fc-card-area';
 
-      // Back
-      html += '<div class="sb-fc-card-face sb-fc-card-back">';
-      html += '<div class="sb-fc-card-label">Definition</div>';
-      html += `<div class="sb-fc-card-text">${escapeHtml(card.definition)}</div>`;
-      if (card.relatedTerms && card.relatedTerms.length > 0) {
-        html += `<div class="sb-fc-card-related">Related: ${card.relatedTerms.map(escapeHtml).join(', ')}</div>`;
+    const card = document.createElement('div');
+    card.className = 'sb-fc-card';
+    card.setAttribute('role', 'button');
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('aria-label', 'Flashcard. Press space to flip.');
+    card.setAttribute('data-action', 'flip');
+
+    // Front face
+    const front = document.createElement('div');
+    front.className = 'sb-fc-card-face sb-fc-card-front';
+    front.innerHTML =
+      '<div class="sb-fc-card-label">Term</div>' +
+      '<div class="sb-fc-card-text sb-fc-term-text"></div>' +
+      '<div class="sb-fc-hint">Click or press Space to reveal</div>';
+    card.appendChild(front);
+
+    // Back face
+    const back = document.createElement('div');
+    back.className = 'sb-fc-card-face sb-fc-card-back';
+    back.innerHTML =
+      '<div class="sb-fc-card-label">Definition</div>' +
+      '<div class="sb-fc-card-text sb-fc-def-text"></div>' +
+      '<div class="sb-fc-card-related"></div>';
+    card.appendChild(back);
+
+    cardArea.appendChild(card);
+    wrapper.appendChild(cardArea);
+
+    // Controls
+    const controls = document.createElement('div');
+    controls.className = 'sb-fc-controls';
+    controls.innerHTML =
+      '<button class="sb-fc-btn" data-action="prev" aria-label="Previous card">&larr; Prev</button>' +
+      '<span class="sb-fc-counter"></span>' +
+      '<button class="sb-fc-btn" data-action="next" aria-label="Next card">Next &rarr;</button>' +
+      '<button class="sb-fc-btn" data-action="shuffle" aria-label="Shuffle cards">Shuffle</button>';
+    wrapper.appendChild(controls);
+
+    // Completion screen
+    const complete = document.createElement('div');
+    complete.className = 'sb-fc-complete';
+    complete.innerHTML =
+      '<div class="sb-fc-complete-icon" aria-hidden="true">&#10003;</div>' +
+      '<h3>Deck Complete!</h3>' +
+      '<p class="sb-fc-complete-msg"></p>' +
+      '<button class="sb-fc-btn" data-action="restart">Study Again</button> ' +
+      '<button class="sb-fc-btn" data-action="shuffle-restart">Shuffle &amp; Restart</button>';
+    wrapper.appendChild(complete);
+
+    container.appendChild(wrapper);
+
+    // Cache element references
+    els = {
+      decksRow,
+      card,
+      cardArea,
+      termText: wrapper.querySelector('.sb-fc-term-text'),
+      defText: wrapper.querySelector('.sb-fc-def-text'),
+      relatedText: wrapper.querySelector('.sb-fc-card-related'),
+      progressReviewed: wrapper.querySelector('.sb-fc-progress-reviewed'),
+      progressPct: wrapper.querySelector('.sb-fc-progress-pct'),
+      progressFill: wrapper.querySelector('.sb-fc-progress-fill'),
+      counter: wrapper.querySelector('.sb-fc-counter'),
+      prevBtn: wrapper.querySelector('[data-action="prev"]'),
+      nextBtn: wrapper.querySelector('[data-action="next"]'),
+      controls,
+      complete,
+      completeMsg: wrapper.querySelector('.sb-fc-complete-msg'),
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // UI Updates (no DOM rebuilds — just text/class changes)
+  // ---------------------------------------------------------------------------
+
+  function updateDeckButtons() {
+    const buttons = els.decksRow.querySelectorAll('.sb-fc-deck-btn');
+    buttons.forEach(btn => {
+      const idx = btn.getAttribute('data-deck-index');
+      if (idx === 'master') {
+        btn.classList.toggle('sb-selected', state.isMasterDeck);
+        btn.setAttribute('aria-selected', String(state.isMasterDeck));
+      } else {
+        const isSelected = !state.isMasterDeck && parseInt(idx, 10) === state.currentDeckIndex;
+        btn.classList.toggle('sb-selected', isSelected);
+        btn.setAttribute('aria-selected', String(isSelected));
       }
-      html += '</div>';
+    });
+  }
 
-      html += '</div></div>';
+  function updateProgress() {
+    const total = state.currentCards.length;
+    const reviewed = state.reviewedCards.size;
+    const pct = total > 0 ? Math.round((reviewed / total) * 100) : 0;
 
-      // Controls
-      html += '<div class="sb-fc-controls">';
-      html += `<button class="sb-fc-btn" data-action="prev" ${state.currentCardIndex === 0 ? 'disabled' : ''} aria-label="Previous card">&larr; Prev</button>`;
-      html += `<span class="sb-fc-counter">Card ${state.currentCardIndex + 1} of ${totalCards}</span>`;
-      html += `<button class="sb-fc-btn" data-action="next" ${state.currentCardIndex >= totalCards - 1 ? 'disabled' : ''} aria-label="Next card">Next &rarr;</button>`;
-      html += `<button class="sb-fc-btn" data-action="shuffle" aria-label="Shuffle cards">Shuffle</button>`;
-      html += '</div>';
+    els.progressReviewed.textContent = reviewed + ' of ' + total + ' cards reviewed';
+    els.progressPct.textContent = pct + '%';
+    els.progressFill.style.width = pct + '%';
+  }
+
+  function updateCard() {
+    if (state.currentCards.length === 0) return;
+
+    const card = state.currentCards[state.currentCardIndex];
+    els.termText.textContent = card.term;
+    els.defText.textContent = card.definition;
+
+    if (card.relatedTerms && card.relatedTerms.length > 0) {
+      els.relatedText.textContent = 'Related: ' + card.relatedTerms.join(', ');
+      els.relatedText.style.display = '';
+    } else {
+      els.relatedText.textContent = '';
+      els.relatedText.style.display = 'none';
     }
 
-    container.innerHTML = html;
+    // Reset flip state
+    els.card.classList.remove('sb-flipped');
+    state.isFlipped = false;
+  }
+
+  function updateControls() {
+    const total = state.currentCards.length;
+    els.counter.textContent = 'Card ' + (state.currentCardIndex + 1) + ' of ' + total;
+    els.prevBtn.disabled = state.currentCardIndex === 0;
+    els.nextBtn.disabled = state.currentCardIndex >= total - 1;
+  }
+
+  function showCardUI() {
+    els.cardArea.style.display = '';
+    els.controls.style.display = '';
+    els.complete.classList.remove('sb-visible');
+  }
+
+  function showCompleteUI() {
+    els.cardArea.style.display = 'none';
+    els.controls.style.display = 'none';
+
+    const deckName = state.isMasterDeck
+      ? 'Master Deck'
+      : state.decks[state.currentDeckIndex]?.title || 'this deck';
+    els.completeMsg.textContent =
+      'You reviewed all ' + state.currentCards.length + ' cards in "' + deckName + '".';
+    els.complete.classList.add('sb-visible');
+  }
+
+  function refreshUI() {
+    updateDeckButtons();
+    updateProgress();
+
+    if (state.isComplete) {
+      showCompleteUI();
+    } else {
+      showCardUI();
+      updateCard();
+      updateControls();
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -397,72 +551,97 @@
     state.isFlipped = false;
     state.reviewedCards = loadProgress(deck.id);
     state.isComplete = false;
-    render();
+    state.isMasterDeck = false;
+    refreshUI();
+  }
+
+  function selectMasterDeck() {
+    state.currentCards = buildMasterDeck();
+    state.currentCardIndex = 0;
+    state.isFlipped = false;
+    state.reviewedCards = loadProgress('master');
+    state.isComplete = false;
+    state.isMasterDeck = true;
+    state.currentDeckIndex = -1;
+    refreshUI();
   }
 
   function flipCard() {
     if (state.isComplete || state.currentCards.length === 0) return;
     state.isFlipped = !state.isFlipped;
+    els.card.classList.toggle('sb-flipped');
 
     // Mark as reviewed when flipped to back
     if (state.isFlipped) {
       const card = state.currentCards[state.currentCardIndex];
       state.reviewedCards.add(card.id);
-      const deck = state.decks[state.currentDeckIndex];
-      saveProgress(deck.id, state.reviewedCards);
+      const deckId = state.isMasterDeck ? 'master' : state.decks[state.currentDeckIndex].id;
+      saveProgress(deckId, state.reviewedCards);
+      updateProgress();
     }
-
-    render();
   }
 
   function nextCard() {
     if (state.currentCardIndex >= state.currentCards.length - 1) {
-      // Check if deck is complete
       if (state.reviewedCards.size >= state.currentCards.length) {
         state.isComplete = true;
-        render();
+        showCompleteUI();
+        updateProgress();
       }
       return;
     }
     state.currentCardIndex++;
     state.isFlipped = false;
-    render();
+    updateCard();
+    updateControls();
   }
 
   function prevCard() {
     if (state.currentCardIndex <= 0) return;
     state.currentCardIndex--;
     state.isFlipped = false;
-    render();
+    updateCard();
+    updateControls();
   }
 
   function shuffleCards() {
     state.currentCards = shuffle(state.currentCards);
     state.currentCardIndex = 0;
     state.isFlipped = false;
-    render();
+    updateCard();
+    updateControls();
   }
 
   function restart() {
-    const deck = state.decks[state.currentDeckIndex];
-    state.currentCards = [...deck.cards];
+    if (state.isMasterDeck) {
+      state.currentCards = buildMasterDeck();
+    } else {
+      const deck = state.decks[state.currentDeckIndex];
+      state.currentCards = [...deck.cards];
+    }
     state.currentCardIndex = 0;
     state.isFlipped = false;
     state.reviewedCards = new Set();
     state.isComplete = false;
-    saveProgress(deck.id, state.reviewedCards);
-    render();
+    const deckId = state.isMasterDeck ? 'master' : state.decks[state.currentDeckIndex].id;
+    saveProgress(deckId, state.reviewedCards);
+    refreshUI();
   }
 
   function shuffleRestart() {
-    const deck = state.decks[state.currentDeckIndex];
-    state.currentCards = shuffle(deck.cards);
+    if (state.isMasterDeck) {
+      state.currentCards = buildMasterDeck();
+    } else {
+      const deck = state.decks[state.currentDeckIndex];
+      state.currentCards = shuffle(deck.cards);
+    }
     state.currentCardIndex = 0;
     state.isFlipped = false;
     state.reviewedCards = new Set();
     state.isComplete = false;
-    saveProgress(deck.id, state.reviewedCards);
-    render();
+    const deckId = state.isMasterDeck ? 'master' : state.decks[state.currentDeckIndex].id;
+    saveProgress(deckId, state.reviewedCards);
+    refreshUI();
   }
 
   // ---------------------------------------------------------------------------
@@ -474,7 +653,12 @@
     const deckEl = e.target.closest('[data-deck-index]');
 
     if (deckEl) {
-      selectDeck(parseInt(deckEl.dataset.deckIndex, 10));
+      const idx = deckEl.getAttribute('data-deck-index');
+      if (idx === 'master') {
+        selectMasterDeck();
+      } else {
+        selectDeck(parseInt(idx, 10));
+      }
       return;
     }
 
@@ -503,8 +687,6 @@
   }
 
   function handleKeydown(e) {
-    // Only respond when flashcard app or its children are focused, or when no
-    // input/textarea/select is focused
     const active = document.activeElement;
     const isInput = active && /^(INPUT|TEXTAREA|SELECT)$/i.test(active.tagName);
     if (isInput) return;
@@ -566,6 +748,9 @@
 
       state.decks = data.decks;
       injectStyles(STYLES);
+
+      // Build DOM structure
+      buildUI();
 
       // Set up event listeners
       container.addEventListener('click', handleClick);

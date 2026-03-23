@@ -21,6 +21,7 @@
   }
 
   var btnCheck = document.getElementById('btn-check-answers');
+  var btnReset = document.getElementById('btn-reset-exam');
   var scoreSummary = document.getElementById('score-summary');
   var examData = null;
   var answered = {};
@@ -249,6 +250,12 @@
     btnCheck.disabled = true;
     btnCheck.textContent = 'Answers Revealed';
 
+    // Show reset button
+    if (btnReset) {
+      btnReset.style.display = '';
+      btnReset.addEventListener('click', resetExam);
+    }
+
     // Score summary
     showScoreSummary(correctCount, autoGradable);
 
@@ -395,6 +402,51 @@
       '<div class="score-value">' + correct + ' / ' + total + '</div>' +
       '<span class="score-label">' + pct + '% on auto-graded questions</span>' +
       '<div class="score-bar"><div class="score-bar-fill" style="width:' + pct + '%"></div></div>';
+  }
+
+  // ── Reset exam ──
+
+  function resetExam() {
+    checked = false;
+    answered = {};
+
+    // Remove grading classes from option cards
+    var allOptions = container.querySelectorAll('.option-card');
+    for (var i = 0; i < allOptions.length; i++) {
+      allOptions[i].classList.remove('correct', 'incorrect', 'missed', 'selected', 'disabled');
+    }
+
+    // Remove injected answer-reveals and source-lecture elements
+    var reveals = container.querySelectorAll('.answer-reveal, .source-lecture');
+    for (var j = 0; j < reveals.length; j++) {
+      reveals[j].parentNode.removeChild(reveals[j]);
+    }
+
+    // Re-enable and clear textareas
+    var allTextareas = container.querySelectorAll('textarea');
+    for (var k = 0; k < allTextareas.length; k++) {
+      allTextareas[k].disabled = false;
+      allTextareas[k].value = '';
+    }
+
+    // Reset score summary
+    if (scoreSummary) {
+      scoreSummary.hidden = true;
+      scoreSummary.innerHTML = '';
+    }
+
+    // Reset check button
+    btnCheck.disabled = false;
+    btnCheck.textContent = 'Show Correct Answers';
+
+    // Hide reset button
+    if (btnReset) btnReset.style.display = 'none';
+
+    // Reset progress
+    updateProgress();
+
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   // ── Helpers ──
