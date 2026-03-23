@@ -9,6 +9,7 @@ Every pipeline skill reads this file to understand current state and updates it 
 {
   "courseName": "DOS3704 Operations Strategy",
   "sourceDir": "source-materials/",
+  "pluginDir": "C:/Users/example/.claude/plugins/study-site-builder",
   "startedAt": "2026-03-23T02:00:00Z",
   "currentPhase": "content-ingest",
   "phases": [
@@ -67,6 +68,7 @@ Every pipeline skill reads this file to understand current state and updates it 
 |-------|------|----------|-------------|
 | `courseName` | string | yes | Human-readable course name from user |
 | `sourceDir` | string | yes | Path to source materials directory |
+| `pluginDir` | string | yes | Absolute path to the plugin installation directory (contains `templates/`, `references/`, `skills/`). Set by the orchestrator at pipeline initialization. All downstream phases use this to resolve template and reference file paths. |
 | `startedAt` | string | yes | ISO 8601 timestamp of pipeline start |
 | `currentPhase` | string | yes | Name of the currently executing phase |
 | `phases` | array | yes | Ordered array of all 7 phases |

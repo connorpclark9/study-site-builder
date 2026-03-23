@@ -7,7 +7,9 @@ description: "Use when the user wants to build a study website from course mater
 
 You orchestrate a 7-phase pipeline that transforms raw course materials into a fully built study website. You sequence phases, verify outputs, manage context between phases, recover from errors, and interact with the user at decision points.
 
-**All paths are relative to the project root** — the directory containing `pipeline-status.json` (i.e., `study-site-builder/`).
+**Project paths are relative to the project root** — the directory containing `pipeline-status.json`.
+
+**Plugin paths** — Templates and references live in the plugin's installation directory, not the project. At startup (Step 2 below), you must locate the plugin directory and record its path so downstream phases can find templates.
 
 ## Pipeline Phases
 
@@ -41,7 +43,11 @@ If no `pipeline-status.json` exists (or the user chose fresh start):
 1. Ask the user for the course name.
 2. Verify `source-materials/` exists and contains files. If not, tell the user to create it and add their course files (PDFs, PPTXs, DOCXs, XLSX).
 3. List the discovered files and confirm with the user.
-4. Create `pipeline-status.json` per the schema in `references/pipeline-status-format.md`, with all phases set to `"pending"`.
+4. **Locate the plugin directory.** The plugin's templates, references, and shared JS live in the plugin installation directory — not the project. Find it by searching for the `templates/` directory that contains `page-templates/` and `themes/`. Try these locations in order:
+   - Glob for `**/templates/page-templates/index.html` starting from common plugin paths.
+   - The plugin is named `study-site-builder` — search for a directory with that name containing a `.claude-plugin/plugin.json` file.
+   - Once found, record the absolute path as `pluginDir` in `pipeline-status.json` so all downstream phases can resolve template and reference paths without re-searching.
+5. Create `pipeline-status.json` per the schema in `references/pipeline-status-format.md`, with all phases set to `"pending"`. Include the `pluginDir` field.
 
 ## Checkpoint Protocol
 
@@ -49,8 +55,13 @@ This protocol runs after every phase completes. It exists because context grows 
 
 1. **Verify outputs** — Use Glob to confirm expected files exist. Run phase-specific checks (listed under each phase below).
 2. **Update `pipeline-status.json`** — Set the phase status to `"completed"` with a `completedAt` timestamp. Set `currentPhase` to the next phase name. Record `filesProduced` for the phase. See `references/pipeline-status-format.md` for the full schema.
-3. **Compact context** — Write a 2-3 sentence summary of what was produced (file count, key metrics like term count or page count). After summarizing, stop referencing the detailed file contents, intermediate reasoning, and raw data from the completed phase. Retain only: output file paths, summary metrics, and any issues encountered. This frees context capacity for upcoming phases.
-4. **Prepare next phase** — Read only the input files the next phase needs (prefer headers/frontmatter over full content where possible).
+3. **Compact context** — This is critical for pipeline completion. Without aggressive compaction, later phases run out of context and fail.
+   - Write a 2-3 sentence summary of what was produced (file count, key metrics like term count or page count).
+   - After summarizing, **actively forget** all detailed file contents, intermediate reasoning, raw data, and verbose tool outputs from the completed phase.
+   - Retain **only**: output file paths, summary metrics, the `pluginDir` path, and any unresolved issues.
+   - Do NOT carry forward the full text of study notes, flashcard JSON, audit reports, or template contents between phases. Each phase should re-read only what it needs.
+   - If context is getting large (you notice auto-compact warnings), proactively summarize even more aggressively before proceeding.
+4. **Prepare next phase** — Read only the input files the next phase needs (prefer headers/frontmatter over full content where possible). Re-read `pipeline-status.json` to get `pluginDir` and other state.
 
 ## Phase Dispatch
 
@@ -83,6 +94,7 @@ Invoke the `concept-mapper` skill.
 **Verification:**
 - `synthesis/conceptual-map.md` exists with headers matching lecture names.
 - `synthesis/last-minute-review.md` exists with condensed review content.
+- `synthesis/flashcards/` contains one `.json` file per lecture (per-lecture deck files).
 - `synthesis/flashcards.json` exists, is valid JSON, and follows `references/flashcard-format.md`.
 - Every glossary term from every study note has a corresponding flashcard. Missing flashcards mean lost study material.
 
@@ -121,7 +133,7 @@ Invoke the `site-builder` skill.
 - `site/` directory exists with `index.html`.
 - All pages listed in `design/design-spec.md` have corresponding HTML files.
 - Theme CSS is present in `site/`.
-- `site/flashcards.json` exists.
+- `site/data/flashcards.json` exists.
 
 Run the checkpoint protocol.
 
@@ -164,9 +176,42 @@ When all 7 phases are complete:
 
 1. Verify `pipeline-status.json` shows all phases as `"completed"`.
 2. Present a summary: course name, study note count, flashcard count, exam count, pages included, theme selected.
-3. Provide deployment guidance:
-   - The `site/` folder is a self-contained static site. It can be deployed to GitHub Pages, Netlify, Vercel, or opened locally.
-   - For GitHub Pages: push `site/` contents to a repo, enable Pages in Settings pointing to the `main` branch root.
+3. Provide deployment guidance. **Be specific** — many users are deploying to GitHub for the first time:
+
+   **Option A: GitHub Pages (recommended for beginners)**
+
+   The `site/` folder is a self-contained static site. GitHub Pages requires `index.html` at the root of the deployed branch. Because `site/` is a subdirectory of your project, you must deploy it separately:
+
+   ```
+   Step 1: Open a terminal and cd into the site/ folder
+      cd site
+
+   Step 2: Initialize a new git repo inside site/
+      git init
+      git add .
+      git commit -m "Add study site"
+
+   Step 3: Create a GitHub repository (public) and push
+      git branch -M main
+      git remote add origin https://github.com/YOUR-USERNAME/YOUR-REPO-NAME.git
+      git push -u origin main
+
+   Step 4: Enable GitHub Pages
+      Go to your repo on GitHub → Settings → Pages
+      Under "Source", select "Deploy from a branch"
+      Select branch: main, folder: / (root)
+      Click Save
+
+   Step 5: Wait 1-2 minutes, then visit:
+      https://YOUR-USERNAME.github.io/YOUR-REPO-NAME
+   ```
+
+   **Important:** Do NOT push the entire project directory (with `source-materials/`, `study-notes/`, etc.) and expect GitHub Pages to serve the site. GitHub Pages looks for `index.html` at the root of the branch — it won't find it inside a `site/` subfolder. You must either deploy from within the `site/` folder (recommended) or use a separate branch containing only the `site/` contents.
+
+   **Option B: Open locally** — Open `site/index.html` directly in a browser. Note: flashcards and exams require a local server due to `fetch()` calls. Run `npx serve site` or `python -m http.server -d site` to serve locally.
+
+   **Option C: Netlify / Vercel** — Drag the `site/` folder into the deploy UI, or configure the publish directory as `site/`.
+
 4. Ask if the user wants adjustments (re-run a phase, change theme, add more exams).
 
 The final `pipeline-status.json` should look like this (all phases completed, `currentPhase` set to `"done"`):

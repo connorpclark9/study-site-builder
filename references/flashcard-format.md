@@ -2,13 +2,19 @@
 
 > Data contract for the flashcard JSON file produced by the flashcard-generator skill and consumed by the site-generator skill.
 
-## File Location
+## File Locations
 
+**Per-lecture files (intermediate):**
 ```
-output/flashcards.json
+synthesis/flashcards/lecture-NN.json
 ```
+One file per lecture deck. Each contains a single deck object (not the full structure). These are generated first to avoid context overflow on large courses.
 
-A single JSON file containing all flashcard decks for the entire course.
+**Merged file (final):**
+```
+synthesis/flashcards.json
+```
+A single JSON file containing all flashcard decks for the entire course. Produced by merging all per-lecture files. This is what the site-builder copies to `site/data/flashcards.json` and what `flashcards.js` loads at runtime.
 
 ## Top-Level Structure
 
@@ -32,7 +38,7 @@ A single JSON file containing all flashcard decks for the entire course.
   "metadata": {
     "totalCards": 150,
     "totalDecks": 12,
-    "generatedFrom": "output/study-notes/",
+    "generatedFrom": "study-notes/",
     "generatedAt": "2026-03-23T14:30:00Z"
   }
 }
@@ -71,7 +77,7 @@ A single JSON file containing all flashcard decks for the entire course.
 
 ### Deck Rules
 
-1. **One deck per study note file.** Each study notes markdown file in `output/study-notes/` produces exactly one deck. No merging, no splitting.
+1. **One deck per study note file.** Each study notes markdown file in `study-notes/` produces exactly one deck. No merging, no splitting.
 2. **Deck ordering.** Decks in the `decks` array MUST be ordered by `lecture_number` (ascending), matching the order of study notes.
 3. **Deck ID format.** The deck `id` MUST follow the pattern `lecture-NN` where `NN` is the zero-padded lecture number from the study notes frontmatter. Examples: `lecture-01`, `lecture-02`, `lecture-12`.
 4. **Deck title.** The deck `title` MUST exactly match the `title` field from the corresponding study notes frontmatter.

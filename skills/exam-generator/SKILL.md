@@ -32,9 +32,11 @@ Run these before anything else. Stop with a clear error if any check fails.
 2. **Concurrency guard.** Read `pipeline-status.json`. If the `exam-generator`
    phase status is `in-progress`, stop: _"An exam generation is already running.
    Wait for it to finish or reset its status before starting another."_
-3. **Template files exist.** Confirm the required exam format template is present
-   at `templates/exam-formats/{card-style|classic-style}.html`. If missing, stop
-   with the specific path that could not be found.
+3. **Template files exist.** Read `pluginDir` from `pipeline-status.json` to
+   locate the plugin's template directory. Confirm the required exam format
+   template is present at `{pluginDir}/templates/exam-formats/{card-style|classic-style}/exam-template.html`.
+   Each format also has `exam-styles.css` and `exam-checker.js` in the same
+   directory. If missing, stop with the specific path that could not be found.
 
 ---
 
@@ -148,11 +150,15 @@ schema in `references/exam-format.md`. Key requirements from that schema:
 
 ## Step 5: Generate Exam HTML Page
 
-1. Select the template based on exam format:
-   - `templates/exam-formats/card-style.html`
-   - `templates/exam-formats/classic-style.html`
-2. Read the template. If it does not exist, stop with a clear error.
-3. Replace all `{{PLACEHOLDER}}` markers:
+1. Read `pluginDir` from `pipeline-status.json`. Select the template based on exam format:
+   - `{pluginDir}/templates/exam-formats/card-style/exam-template.html`
+   - `{pluginDir}/templates/exam-formats/classic-style/exam-template.html`
+2. Read the template HTML, plus the corresponding `exam-styles.css` and
+   `exam-checker.js` from the same directory. If any file does not exist, stop
+   with a clear error showing the path that was tried.
+3. Copy `exam-styles.css` to `site/css/exam-styles.css` and `exam-checker.js`
+   to `site/js/exam-checker.js` (if not already copied from a previous exam).
+4. Replace all `{{PLACEHOLDER}}` markers:
    - `{{EXAM_NUMBER}}` — N
    - `{{EXAM_TITLE}}` — "Practice Exam N" or a descriptive title if focus areas
      were specified
@@ -161,7 +167,7 @@ schema in `references/exam-format.md`. Key requirements from that schema:
    - `{{QUESTION_COUNT}}` — total questions
    - `{{NAV_PLACEHOLDER}}` — navigation script tag
    - Any other placeholders defined in the template
-4. Write to `site/exams/practice-exam-{N}.html`.
+5. Write to `site/exams/practice-exam-{N}.html`.
 
 ## Step 6: Update Navigation
 

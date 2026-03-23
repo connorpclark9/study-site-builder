@@ -32,11 +32,13 @@ Before any work, verify every required input exists. Read each path and confirm 
 | Path | Purpose |
 |------|---------|
 | `study-notes/` | Processed lecture notes (at least one `.md` file) |
-| `templates/page-templates/` | HTML page templates |
-| `templates/themes/` | Theme CSS folders |
-| `templates/shared-js/` | `nav.js` and `flashcards.js` |
+| `{pluginDir}/templates/page-templates/` | HTML page templates |
+| `{pluginDir}/templates/themes/` | Theme CSS folders |
+| `{pluginDir}/templates/shared-js/` | `nav.js` and `flashcards.js` |
 
-**Error: template not found.** If the design spec references a theme folder or page template that does not exist under `templates/`, stop and report the mismatch. List available themes/templates so the user can correct the design spec.
+**Resolving `pluginDir`:** Read `pipeline-status.json` and use the `pluginDir` field to find the plugin's template directory. All `templates/` paths in this skill are relative to `pluginDir`, not the project root. Templates live in the plugin installation directory, not the user's project.
+
+**Error: template not found.** If the design spec references a theme folder or page template that does not exist under `{pluginDir}/templates/`, stop and report the mismatch. List available themes/templates so the user can correct the design spec.
 
 ---
 
@@ -50,7 +52,7 @@ Read `design/design-spec.md` and extract:
 - **Exam format** — card-style or classic-style (noted for later use by exam-generator; not consumed here)
 - **CSS overrides** — any custom colors, fonts, or style tweaks
 
-Validate that every selected page has a corresponding template file at `templates/page-templates/{page-name}.html`. If the design spec references a page type with no matching template, stop and report the error.
+Validate that every selected page has a corresponding template file at `{pluginDir}/templates/page-templates/{page-name}.html`. If the design spec references a page type with no matching template, stop and report the error.
 
 ---
 
@@ -74,7 +76,7 @@ site/exams/
 
 Copy the selected theme CSS into the output:
 
-- Source: `templates/themes/{selected-theme}/theme.css`
+- Source: `{pluginDir}/templates/themes/{selected-theme}/theme.css`
 - Destination: `site/css/theme.css`
 
 If the design spec includes CSS overrides, append them to the end of `site/css/theme.css` inside a clearly marked block:
@@ -90,8 +92,8 @@ If the design spec includes CSS overrides, append them to the end of `site/css/t
 
 Copy shared JS files:
 
-- `templates/shared-js/nav.js` -> `site/js/nav.js`
-- `templates/shared-js/flashcards.js` -> `site/js/flashcards.js`
+- `{pluginDir}/templates/shared-js/nav.js` -> `site/js/nav.js`
+- `{pluginDir}/templates/shared-js/flashcards.js` -> `site/js/flashcards.js`
 
 ---
 
@@ -127,7 +129,7 @@ First, check if `build/` exists. Create it if it does not. If it exists, clear i
 For each page selected in the design spec, write a sub-PRD file at `build/sub-prd-{page-name}.md` containing:
 
 1. **Target file** — output HTML path (e.g., `site/index.html`)
-2. **Template source** — which template to use (e.g., `templates/page-templates/index.html`)
+2. **Template source** — which template to use (e.g., `{pluginDir}/templates/page-templates/index.html`)
 3. **Content sources** — which files from `study-notes/` and `synthesis/` provide content
 4. **Placeholder mappings** — a table mapping each `{{PLACEHOLDER}}` in the template to its content source and transformation instructions
 5. **Page-specific transform rules** — include the relevant transform section from below (only for pages that need transforms)

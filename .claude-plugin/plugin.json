@@ -7,19 +7,5 @@
   },
   "repository": "https://github.com/connorpclark9/study-site-builder",
   "license": "MIT",
-  "keywords": ["study", "education", "website", "flashcards", "practice-exams", "tutor", "pipeline"],
-  "commands": {
-    "study-site start": {
-      "skill": "start",
-      "description": "Build a complete study website from course materials"
-    },
-    "study-site add-exam": {
-      "skill": "exam-generator",
-      "description": "Add a new practice exam to an existing study site"
-    },
-    "study-site tutor": {
-      "skill": "tutor",
-      "description": "Start an interactive tutoring session using your study materials"
-    }
-  }
+  "keywords": ["study", "education", "website", "flashcards", "practice-exams", "tutor", "pipeline"]
 }

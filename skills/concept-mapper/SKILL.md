@@ -126,28 +126,35 @@ Guidelines:
 
 ## Step 4: Extract Flashcards
 
-Write `synthesis/flashcards.json` following the schema in `references/flashcard-format.md`. That file is authoritative — if any detail below conflicts with it, the reference file wins.
+Generate flashcards following the schema in `references/flashcard-format.md`. That file is authoritative — if any detail below conflicts with it, the reference file wins.
+
+**Why per-lecture files:** Generating all flashcards in one pass for a large course can exhaust the context window, causing the agent to stall or produce truncated output. Writing one deck file per lecture keeps each generation step small and recoverable. The final merge step reads small files and combines them.
 
 ### Process
 
-1. For each study note, extract every term from the Key Terms and Definitions Glossary section.
-2. For each term, create a card:
-   - `id`: `lecture-NN-NNN` (zero-padded lecture + three-digit alphabetical sequence).
-   - `term`: exact term name from the glossary.
-   - `definition`: glossary definition condensed to 300 characters max. The 300-char limit exists because flashcard UIs truncate longer text, making excess content invisible to the student. Condense by removing examples and parentheticals while keeping accuracy.
-   - `relatedTerms`: from `[Related: ...]` annotations. Only include terms that actually exist as cards elsewhere in the file — dangling references break the cross-reference UI.
-   - `sourceLecture`: `"Lecture N"` (no zero-padding).
-3. Group cards into decks (one per study note):
-   - `id`: `lecture-NN`.
-   - `title`: exact match of the study note's `title` frontmatter.
-   - `cards`: alphabetical by `term`. Alphabetical ordering matters because the flashcard review UI supports "jump to letter" navigation.
-4. Order decks ascending by lecture number.
-5. Calculate metadata: `totalCards`, `totalDecks`, `generatedFrom` (`"study-notes/"`), `generatedAt` (ISO 8601 UTC).
+1. Create `synthesis/flashcards/` directory if it does not exist.
+2. **For each study note, generate one deck file** at `synthesis/flashcards/lecture-NN.json`:
+   - Extract every term from the Key Terms and Definitions Glossary section.
+   - For each term, create a card:
+     - `id`: `lecture-NN-NNN` (zero-padded lecture + three-digit alphabetical sequence).
+     - `term`: exact term name from the glossary.
+     - `definition`: glossary definition condensed to 300 characters max. The 300-char limit exists because flashcard UIs truncate longer text, making excess content invisible to the student. Condense by removing examples and parentheticals while keeping accuracy.
+     - `relatedTerms`: from `[Related: ...]` annotations. Leave these as-is for now — dangling references are cleaned up in the merge step.
+     - `sourceLecture`: `"Lecture N"` (no zero-padding).
+   - Write the deck as a JSON object: `{ "id": "lecture-NN", "title": "...", "cards": [...] }`
+   - Cards must be alphabetical by `term` within the deck.
+   - **Write the file to disk immediately** before moving to the next study note. Do not accumulate multiple decks in memory.
+3. **Merge into `synthesis/flashcards.json`** after all per-lecture files are written:
+   - Read each `synthesis/flashcards/lecture-NN.json` file (they are small — one deck each).
+   - Combine into the final structure: `{ "decks": [...], "metadata": {...} }`.
+   - Order decks ascending by lecture number.
+   - **Clean up relatedTerms:** Build a set of all term names across all decks. Remove any `relatedTerms` entry that does not match a term in the set — dangling references break the cross-reference UI.
+   - Calculate metadata: `totalCards`, `totalDecks`, `generatedFrom` (`"study-notes/"`), `generatedAt` (ISO 8601 UTC).
 
-### Validate Before Writing
+### Validate Before Writing the Merged File
 
 Run through the validation checklist from `references/flashcard-format.md` (9 checks). Fix any failures before writing. Specifically watch for:
-- **Dangling relatedTerms** — if a referenced term has no card, remove the reference rather than inventing a card.
+- **Dangling relatedTerms** — should already be cleaned up in the merge step, but verify.
 - **Definition overflow** — if any definition exceeds 300 characters after condensing, trim further.
 - **Missing glossary terms** — if a study note's glossary section is empty or unparseable, report it as an error in the completion signal rather than silently skipping.
 

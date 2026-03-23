@@ -92,12 +92,17 @@ After all subagents finish, verify every output file. The 7 required section hea
 1. **File existence** — Glob `study-notes/*.md`. Confirm one file per lecture group from Step 1.
 2. **Frontmatter** — Read the first 15 lines of each file. Verify:
    - YAML frontmatter block is present (opens and closes with `---`).
-   - Fields `title`, `source_files`, `topics`, `lecture_number` all exist.
+   - Fields `title`, `source_files`, `topics`, `lecture_number` all exist and are non-empty.
    - `title` follows the format "Lecture N: Topic Name".
-   - `lecture_number` is an integer.
-3. **Sections** — Search each file for all 7 required section headers from the format spec.
-4. **Glossary depth** — Count glossary entries (lines starting with `**` in the glossary section). Confirm at least 10 per lecture.
-5. **On failure** — Log which file and check failed. Re-read the source materials for that lecture, regenerate the study note, and re-verify.
+   - `lecture_number` is an integer (not a string, not missing). This field is critical — downstream phases use it to order decks and assign flashcard IDs. A missing `lecture_number` will cause flashcard generation to fail silently.
+   - `topics` is a list with at least one entry.
+3. **Sections** — Read each file and search for all 7 required section headers from the format spec. Use exact header text matches (e.g., `## Key Terms and Definitions Glossary`). If grep returns no match for a section header, the file is incomplete.
+4. **Glossary depth** — For each file, locate the glossary section and count entries. Glossary entries are lines starting with `**` followed by a term name and `**:`. Confirm at least 10 per lecture. If a file has fewer than 10, this indicates the ingestion missed significant content — do not proceed until fixed.
+5. **On failure** — For each failed check:
+   - Log the specific file path and which check failed (e.g., "lecture-03-pricing.md: missing lecture_number in frontmatter").
+   - Re-read the source materials for that lecture.
+   - Regenerate the study note with explicit attention to the failed check.
+   - Re-verify the regenerated file before marking the phase complete.
 
 ## Step 6: Update Pipeline Status
 
