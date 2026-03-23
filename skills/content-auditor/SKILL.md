@@ -7,7 +7,6 @@ description: "Use when study-notes/ and synthesis/ exist and need verification a
 
 Cross-check study notes and synthesis outputs against original source materials. Flag inaccuracies for user review, apply approved corrections, and declare the verified files as the single source of truth for all downstream phases.
 
-Why this phase exists: the content-ingest and concept-mapper phases use LLM generation, which can introduce subtle errors — a misquoted formula, a dropped glossary term, a hallucinated dependency between lectures. Catching these now prevents compounding errors across the site-builder, exam-generator, and every student who uses the final site.
 
 ## Precondition Check
 
@@ -33,56 +32,85 @@ Read `pipeline-status.json`. Update the `content-auditor` phase entry:
 
 Set `currentPhase` to `"content-auditor"`.
 
-## Step 1: Audit Scope
+## Step 1: Build Dispatch Table
 
-Check the following for accuracy and completeness:
+Glob `study-notes/*.md`. For each file, read only the YAML frontmatter (first 20 lines) to extract `title`, `source_files`, and `lecture_number`. Build a dispatch table:
 
-1. **Factual accuracy of study notes** — Do key claims, definitions, and explanations in `study-notes/` match the source files in `source-materials/`?
-2. **Glossary completeness** — Does every significant term from the source material appear in the study note glossaries? Alphabetical ordering matters here because downstream phases (flashcard generation, site index pages) assume sorted glossaries.
-3. **Flashcard definition correctness** — Do flashcard definitions in `synthesis/flashcards.json` accurately represent the terms as defined in the sources?
-4. **Conceptual map relationship accuracy** — Are the lecture dependencies and concept relationships in `synthesis/conceptual-map.md` actually supported by the source content?
-
-## Step 2: Comparison Method
-
-### 2a: Study Notes vs. Source Materials
-
-For each study note file in `study-notes/`:
-
-1. Read the study note file completely.
-2. Read the corresponding source files listed in the `source_files` frontmatter field. For PDFs with more than 10 pages, use the `pages` parameter to read in chunks of 10-20 pages at a time — the Read tool will fail on large PDFs without this parameter.
-3. For each major claim, definition, or formula in the study note, check against the source:
-   - **Definitions:** Does the study note definition match the source material in meaning and accuracy? Minor rewording for clarity is acceptable; factual differences are not.
-   - **Formulas:** Check every variable, operator, and subscript. A single wrong subscript can change the meaning entirely.
-   - **Numerical examples:** Verify all numbers. Recalculate where possible.
-   - **Relationship claims:** Statements like "X depends on Y" or "X is a type of Y" need explicit support in the source material. Unsupported inferences get flagged even if they seem plausible.
-4. Classify each checked item as:
-   - **Verified**: Matches the source material.
-   - **Flagged**: Differs from the source, is ambiguous, was not found in the source, or appears to be an unsupported inference.
-
-### 2b: Glossary Completeness Check
-
-For each study note file:
-
-1. Scan the source material for significant terms (bolded terms, defined terms, section headings for concepts).
-2. Confirm each identified term appears in the study note's glossary section.
-3. Flag any missing terms. Include the source location where the term was found so the user can assess importance.
-
-### 2c: Flashcard Verification
-
-1. Read `synthesis/flashcards.json`. If it fails to parse as valid JSON, stop and report the parse error with the approximate location of the malformed content. Do not attempt to audit malformed data.
-2. For a sample of cards (at minimum 3 per deck, or all cards if deck has fewer than 10), verify the definition against both the study note glossary and the original source material.
-3. Flag any definitions that are inaccurate, misleading, or missing critical nuance.
-4. Verify that all definitions fit within 300 characters. This limit exists because the flashcard UI renders definitions in a fixed-height card — overflow gets clipped and students miss content. Re-check any corrected definitions against this limit after edits.
-
-### 2d: Conceptual Map Verification
-
-1. Read `synthesis/conceptual-map.md`.
-2. For each stated lecture dependency (e.g., "Lecture 5 builds on Lecture 3"), verify that the source material for the later lecture actually references or assumes knowledge from the earlier one.
-3. Flag any dependencies that appear incorrect or unsupported.
-
-## Step 3: Audit Report
+| Study note | Source file(s) | Findings output |
+|------------|---------------|-----------------|
+| study-notes/lecture-01-foo.md | source-materials/lecture-01.pdf | audit/findings-lecture-01.md |
+| study-notes/lecture-09-bar.md | source-materials/bar-case.pdf | audit/findings-lecture-09.md |
 
 Create the `audit/` directory if it does not exist.
+
+## Step 2: Dispatch Parallel Audit Agents
+
+Send ALL Agent calls in a single message — one subagent per study note. Each subagent audits one note against its source and writes its findings to a file.
+
+For each row in the dispatch table, dispatch a subagent with this prompt (fill in bracketed values):
+
+````
+Audit one study note against its source material.
+
+Study note: [study note path]
+Source file(s): [source file path(s)]
+Write findings to: [findings output path]
+
+Instructions:
+1. Read the study note completely.
+2. Check ALL formulas, equations, and quantitative expressions:
+   - Open the source file at the pages/slides where each formula appears.
+   - For large PDFs use the `pages` parameter (e.g., pages: "1-10").
+   - Verify every variable, operator, and subscript exactly.
+3. Scan the first 2-3 pages of the source for bolded/defined terms and section headings.
+   - Flag any significant terms missing from the study note's glossary section.
+4. Select 3 spot-check claims: the most surprising claim in the note, the briefest definition, and any relationship claim ("X leads to Y"). Read only the relevant source section to verify each.
+
+Classify each checked item as Verified or Flagged.
+
+Write your findings to [findings output path] in exactly this format:
+
+```markdown
+# Audit Findings: [study note title]
+
+## Formulas Checked
+- [formula or expression]: VERIFIED / FLAGGED — [note if flagged]
+
+## Missing Glossary Terms
+- [term]: found in source at [location] — [brief definition from source]
+(Write "None" if all significant terms are present)
+
+## Spot-Check Claims
+- Claim 1 ([brief label]): VERIFIED / FLAGGED — [note if flagged]
+- Claim 2 ([brief label]): VERIFIED / FLAGGED — [note if flagged]
+- Claim 3 ([brief label]): VERIFIED / FLAGGED — [note if flagged]
+
+## Suggested Corrections
+For each FLAGGED item, provide:
+**[Item label]**
+Location: [section name in study note]
+Current: "[exact current text]"
+Correction: "[corrected text based on source]"
+Source: [source file name, page/slide number]
+```
+````
+
+## Step 3: Flashcard Spot-Check (Main Agent)
+
+While audit subagents run (or after they complete), run the flashcard check in the main agent:
+
+1. Read `synthesis/flashcards.json`. If it fails to parse as valid JSON, record the parse error and skip this check.
+2. For each deck, spot-check 3 card definitions against the corresponding study note glossary.
+3. Flag definitions that are inaccurate or exceed 300 characters.
+
+## Step 4: Compile Findings
+
+After all subagents complete:
+
+1. Read every `audit/findings-*.md` file.
+2. Aggregate all flagged items, missing terms, and suggested corrections across all files.
+
+## Step 5: Audit Report
 
 Write `audit/audit-report.md` with this structure:
 
@@ -143,16 +171,13 @@ phase: content-auditor
 ## Flashcard Issues
 [Any flagged flashcard definitions with card ID and suggested correction]
 
-## Conceptual Map Issues
-[Any flagged relationship or dependency issues]
-
 ## Source Coverage
 [Verify every file in source-materials/ is referenced by at least one study note's
 source_files field. List any source files not covered by any study note — these
 represent dropped content that needs to be ingested.]
 ```
 
-## Step 4: Auto-Resolve Flagged Items
+## Step 6: Auto-Resolve Flagged Items
 
 **Autonomous mode:** All flagged items are resolved automatically without user interaction. The pipeline runs end-to-end without pausing.
 
@@ -161,24 +186,22 @@ represent dropped content that needs to be ingested.]
 1. **Factual corrections (definition, formula, numerical errors):** Auto-accept the suggested correction. The source material is authoritative — if the study note disagrees with the source, the source wins.
 2. **Missing glossary terms:** Auto-add them in alphabetical order using the source material's definition.
 3. **Flashcard definition inaccuracies:** Auto-accept the suggested correction, ensuring the result stays within the 300-character limit.
-4. **Conceptual map relationship errors:** Auto-accept the suggested correction.
-5. **Ambiguous flags (source material itself is unclear):** Keep the original content and log the ambiguity in the audit report for the user to review post-build.
+4. **Ambiguous flags (source material itself is unclear):** Keep the original content and log the ambiguity in the audit report for the user to review post-build.
 
-If there are zero flagged items, proceed directly to Step 6.
+If there are zero flagged items, proceed directly to Step 8.
 
 All auto-resolved corrections are logged in the audit report under a "Auto-Resolved Corrections" section so the user can review them after the pipeline completes.
 
-## Step 5: Apply Corrections
+## Step 7: Apply Corrections
 
 Apply all auto-resolved corrections:
 
 1. **Study note corrections:** Open the relevant `study-notes/` file and use the Edit tool to replace the incorrect content.
 2. **Missing glossary terms:** Add the term in alphabetical order in the glossary section, using the format `**Term Name**: Definition. [Related: Other Terms]`.
 3. **Flashcard corrections:** Update the definition in `synthesis/flashcards.json`. After editing, verify the definition still fits within 300 characters. If it exceeds the limit, trim to fit while preserving accuracy.
-4. **Conceptual map corrections:** Update the relationship in `synthesis/conceptual-map.md`.
-5. After all corrections are applied, update the audit report with an "Auto-Resolved Corrections" section listing every correction made and its rationale, plus a "Kept As-Is" section for any ambiguous flags that were not corrected.
+4. After all corrections are applied, update the audit report with an "Auto-Resolved Corrections" section listing every correction made and its rationale, plus a "Kept As-Is" section for any ambiguous flags that were not corrected.
 
-## Step 6: Source of Truth Declaration
+## Step 8: Source of Truth Declaration
 
 After all corrections have been applied, append to the audit report:
 
@@ -194,7 +217,6 @@ for all downstream phases (site-builder, exam-generator).** No further reference
 **Verified at:** {ISO 8601 timestamp}
 ```
 
-Why this declaration matters: downstream phases (site-builder, exam-generator) need to know they can trust the markdown files without re-checking sources. This declaration establishes that boundary.
 
 ## Pipeline Status Update: Complete
 

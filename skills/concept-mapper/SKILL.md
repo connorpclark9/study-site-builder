@@ -143,36 +143,58 @@ Guidelines:
 
 Generate flashcards following the schema in `references/flashcard-format.md`. That file is authoritative — if any detail below conflicts with it, the reference file wins.
 
-**Why per-lecture files:** Generating all flashcards in one pass for a large course can exhaust the context window, causing the agent to stall or produce truncated output. Writing one deck file per lecture keeps each generation step small and recoverable. The final merge step reads small files and combines them.
-
-### Process
+### 4a: Prepare Dispatch Table
 
 1. Create `synthesis/flashcards/` directory if it does not exist.
-2. **For each study note, generate one deck file** at `synthesis/flashcards/lecture-NN.json`:
-   - Extract every term from the Key Terms and Definitions Glossary section.
-   - For each term, create a card:
-     - `id`: `lecture-NN-NNN` (zero-padded lecture + three-digit alphabetical sequence).
-     - `term`: exact term name from the glossary.
-     - `definition`: glossary definition condensed to 300 characters max. The 300-char limit exists because flashcard UIs truncate longer text, making excess content invisible to the student. Condense by removing examples and parentheticals while keeping accuracy.
-     - `relatedTerms`: from `[Related: ...]` annotations. Leave these as-is for now — dangling references are cleaned up in the merge step.
-     - `sourceLecture`: For `type: lecture` notes, use `"Lecture N"` (no zero-padding). For `type: supplementary` notes, use the study note title (e.g., `"Case Studies: Market Entry Strategies"`).
-   - Write the deck as a JSON object: `{ "id": "lecture-NN", "title": "...", "cards": [...] }`
-   - For supplementary decks, the `title` field should use the study note title (not the "Lecture N: ..." format).
-   - Cards must be alphabetical by `term` within the deck.
-   - **Write the file to disk immediately** before moving to the next study note. Do not accumulate multiple decks in memory.
-3. **Merge into `synthesis/flashcards.json`** after all per-lecture files are written:
-   - Read each `synthesis/flashcards/lecture-NN.json` file (they are small — one deck each).
-   - Combine into the final structure: `{ "decks": [...], "metadata": {...} }`.
-   - Order decks ascending by lecture number.
-   - **Clean up relatedTerms:** Build a set of all term names across all decks. Remove any `relatedTerms` entry that does not match a term in the set — dangling references break the cross-reference UI.
-   - Calculate metadata: `totalCards`, `totalDecks`, `generatedFrom` (`"study-notes/"`), `generatedAt` (ISO 8601 UTC).
+2. From the study notes already read in Step 1, build a dispatch table — one row per note:
 
-### Validate Before Writing the Merged File
+| Note path | `type` field | `lecture_number` | `title` | Output path |
+|-----------|-------------|-----------------|---------|-------------|
+| study-notes/lecture-01-foo.md | lecture | 1 | Lecture 1: Foo | synthesis/flashcards/lecture-01.json |
+| study-notes/lecture-09-bar.md | supplementary | 9 | Case Study: Bar | synthesis/flashcards/lecture-09.json |
 
-Run through the validation checklist from `references/flashcard-format.md` (9 checks). Fix any failures before writing. Specifically watch for:
-- **Dangling relatedTerms** — should already be cleaned up in the merge step, but verify.
-- **Definition overflow** — if any definition exceeds 300 characters after condensing, trim further.
-- **Missing glossary terms** — if a study note's glossary section is empty or unparseable, report it as an error in the completion signal rather than silently skipping.
+### 4b: Dispatch All Deck Agents in Parallel
+
+Send ALL Agent calls in a single message. Each subagent handles exactly one study note.
+
+For each row in the dispatch table, dispatch a subagent with this prompt (fill in bracketed values):
+
+````
+Generate a flashcard deck for one study note.
+
+Read this study note: [note path]
+Read the flashcard schema: references/flashcard-format.md
+
+Generate a deck with one card per term in the Key Terms and Definitions Glossary section.
+
+Card fields:
+- `id`: `[zero-padded lecture number]-NNN` where NNN is the card's 3-digit alphabetical sequence (e.g., lecture-01-001)
+- `term`: exact term name from the glossary
+- `definition`: glossary definition condensed to 300 characters max — remove examples and parentheticals, keep accuracy
+- `relatedTerms`: copy the [Related: ...] annotations as-is (dangling refs are cleaned up later)
+- `sourceLecture`: [if type=lecture: "Lecture N" with no zero-padding | if type=supplementary: the full study note title]
+
+Deck wrapper:
+- `id`: `lecture-[NN]` (zero-padded)
+- `title`: [if type=lecture: the study note title | if type=supplementary: the study note title]
+- `cards`: array sorted alphabetically by `term`
+
+Write the completed deck to: [output path]
+
+If the glossary section is empty or missing, write a deck with an empty cards array and include a warning comment in your response.
+````
+
+### 4c: Merge After All Agents Complete
+
+After all subagents finish:
+
+1. Read each `synthesis/flashcards/lecture-NN.json` file.
+2. Combine into the final structure: `{ "decks": [...], "metadata": {...} }`.
+3. Order decks ascending by lecture number.
+4. **Clean up relatedTerms:** Build a set of all term names across all decks. Remove any `relatedTerms` entry that does not appear in the set.
+5. Calculate metadata: `totalCards`, `totalDecks`, `generatedFrom` (`"study-notes/"`), `generatedAt` (ISO 8601 UTC).
+6. Run validation from `references/flashcard-format.md` before writing. Fix any definition exceeding 300 characters. Log any empty decks as errors in the completion signal.
+7. Write `synthesis/flashcards.json`.
 
 ## Step 5: Cross-Reference Validation
 

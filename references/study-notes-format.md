@@ -8,7 +8,7 @@
 output/study-notes/lecture-NN-slug.md
 ```
 
-Each source lecture or topic group produces exactly one study notes file.
+Each source file produces exactly one study notes file — never merge multiple source files into one note.
 
 ## Frontmatter (YAML)
 

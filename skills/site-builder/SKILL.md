@@ -7,10 +7,6 @@ description: "Use when design/design-spec.md is finalized and synthesis/ content
 
 Assemble the final multi-page static study website from templates and verified content. Parse the design spec, set up the output directory, generate sub-PRDs for each page, dispatch parallel subagents to fill templates, then verify the complete build.
 
-## Why This Skill Exists
-
-Earlier pipeline phases produce raw content (study notes, flashcards, conceptual maps) and a design spec describing how to present it. This skill bridges the gap: it turns those artifacts into a working static site. Parallel dispatch matters because each page is independent — building them concurrently cuts wall-clock time proportionally to page count. The sub-PRD pattern gives each subagent a self-contained work order so it never needs to read the full design spec or guess which content belongs where.
-
 ---
 
 ## Precondition Checks
@@ -68,7 +64,7 @@ site/data/
 site/exams/
 ```
 
-**If `site/` already exists:** Rename it to `site-backup-{timestamp}/` before creating the fresh directory. This preserves the previous build in case rollback is needed. Why: a clean build directory prevents stale files from prior runs from leaking into the new build, which would cause confusing verification failures.
+**If `site/` already exists:** Rename it to `site-backup-{timestamp}/` before creating the fresh directory.
 
 ---
 
@@ -165,7 +161,6 @@ The flashcards.js MUST use DOM manipulation (classList.toggle) for card flips, N
 
 ## Step 7: Generate Sub-PRDs
 
-Why sub-PRDs: each subagent receives a single self-contained document describing exactly what to build. This eliminates ambiguity, prevents agents from reading files they do not need, and makes failures easy to diagnose — if a page is wrong, its sub-PRD contains the full specification that was used.
 
 First, check if `build/` exists. Create it if it does not. If it exists, clear its contents.
 
@@ -239,7 +234,6 @@ Generate curated study questions from `study-notes/`:
 
 ## Step 8: Dispatch Parallel Page Agents
 
-Why parallel dispatch: each page is fully independent — different template, different content sources, different output file. Building them concurrently saves time proportional to the number of pages.
 
 For each sub-PRD, dispatch a subagent using the Agent tool. Send ALL Agent calls in a single message to maximize parallelism.
 
@@ -271,7 +265,7 @@ TEMPLATE FILLING PROCESS:
 
 ## Step 9: Verify Build
 
-After ALL subagents complete, verify the entire build. Why: template filling is error-prone — a missing placeholder, a bad content path, or a subagent crash can silently produce broken pages.
+After ALL subagents complete, verify the entire build.
 
 ### 9a. File Existence
 

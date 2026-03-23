@@ -5,7 +5,7 @@ description: "Use when source-materials/ contains course files (PDF, PPTX, DOCX,
 
 # Content Ingest
 
-Transform raw course materials into structured markdown study notes. Each source file group becomes one study note in `study-notes/`, formatted per `references/study-notes-format.md`.
+Transform raw course materials into structured markdown study notes. Each source file becomes its own study note in `study-notes/` — never merge multiple source files into one note. All notes are formatted per `references/study-notes-format.md`.
 
 ## Step 0: Precondition Check
 
@@ -16,76 +16,55 @@ Before doing any work, verify the environment is ready.
 3. Read `references/study-notes-format.md` and hold it in context — this is the authoritative format contract. Every study note you produce conforms to it. If inline instructions here ever conflict with that file, the reference file wins.
 4. Create `study-notes/` if it does not already exist.
 
-## Step 1: Scan, Classify, and Group
+## Step 1: Classify and Number (Light Pre-Pass)
 
-This step uses a three-phase approach to ensure lecture materials stay focused and supplementary content gets its own well-organized study notes.
+Every source file becomes its own study note — no merging files together. This step classifies each file's content type and assigns it a number. It should be fast: use filenames and a quick skim of the first 1–2 pages, not deep reading.
 
-### Phase A: List and Tag by Extension
+### 1a: List Files
 
-1. List every file in `source-materials/` (Glob pattern `source-materials/**/*`).
-2. Tag each file by extension:
-   - `.pdf` — could be anything (slides, readings, case studies, exams)
-   - `.pptx` — presentation slide decks (strong signal for `lecture`)
-   - `.docx` — readings, handouts, case write-ups, assignment descriptions
-   - `.xlsx` — data tables, reference data (strong signal for `reference`)
+List every file in `source-materials/` (Glob pattern `source-materials/**/*`). Only include supported extensions: `.pdf`, `.pptx`, `.docx`, `.xlsx`.
 
-### Phase B: Content-Type Classification
+### 1b: Classify Each File
 
-Before grouping files into clusters, classify each file into one of these content types. The goal is to separate core lecture material from everything else so that supplementary content is never forced into a lecture study note where it does not belong.
+Assign each file exactly one content type. The goal is to ensure the `type` field in the study note frontmatter is accurate, which affects how downstream phases (flashcards, exams, study map) handle the content.
 
 **Content types:**
 
-| Type | Description | Typical files |
-|------|-------------|---------------|
-| `lecture` | Core instructional material that forms the backbone of the course. Slide decks with sequential numbering, chapter readings that map to a lecture topic. | `lecture-05-slides.pptx`, `week-3-demand-analysis.pdf`, `ch-7-pricing.pdf` |
-| `case-study` | Standalone documents structured around a specific company or scenario, with a situation-analysis-outcome or problem-decision-result format. | `case-uber-expansion.pdf`, `airbnb-international-case.docx` |
-| `supplementary-reading` | Articles, research papers, or background readings not tied to a specific lecture number. Provide context or depth but are not the primary instructional material. | `reading-brand-equity.pdf`, `HBR-innovation-article.docx` |
-| `practice-problems` | Past exams, sample questions, problem sets, quizzes, or any document primarily consisting of questions with or without answer keys. | `midterm-2024.pdf`, `practice-problems-ch5.docx`, `final-exam-sample.pdf`, `quiz-3.pdf` |
-| `reference` | Formula sheets, data tables, glossaries, course syllabi, grading rubrics, or administrative documents. | `formula-sheet.xlsx`, `syllabus.pdf`, `course-data.xlsx` |
+| Type | Description | Typical signals |
+|------|-------------|-----------------|
+| `lecture` | Core instructional material: slide decks, chapter summaries, lecture notes. | `.pptx` files, filenames with `lecture`/`week`/`chapter`/`session`/`module`, numbered slides, learning objectives |
+| `case-study` | A document centered on a specific company or scenario with situation-analysis-outcome structure. | Filenames with `case`, company names in title, narrative prose about a specific firm |
+| `supplementary-reading` | Articles, research papers, or background readings that provide depth but are not the primary instruction. | Filenames with `reading`/`article`/`HBR`/`supplement`, dense academic text, citations |
+| `practice-problems` | Past exams, sample questions, problem sets, quizzes — documents primarily consisting of questions. | Filenames with `exam`/`quiz`/`midterm`/`final`/`practice`/`problem`/`test`/`study guide`, numbered questions, point values |
+| `reference` | Formula sheets, data tables, syllabi, grading rubrics, schedules, administrative documents. | `.xlsx` files, filenames with `syllabus`/`formula`/`reference`/`data`/`rubric`/`schedule`, tabular layouts |
 
-**Classification heuristics (try in priority order — stop at first confident match):**
+**Classification procedure (try in order — stop at first confident match):**
 
-1. **Filename signals** — These keywords in the filename are strong indicators:
-   - `lecture`, `week`, `chapter`, `ch-`, `session`, `module` → `lecture`
-   - `case`, `case-study` → `case-study`
-   - `reading`, `article`, `supplement`, `additional`, `background`, `HBR` → `supplementary-reading`
-   - `exam`, `quiz`, `midterm`, `final`, `practice`, `problem-set`, `problem set`, `sample-exam`, `test` → `practice-problems`
-   - `syllabus`, `formula`, `reference`, `data`, `rubric`, `schedule` → `reference`
+1. **Filename keywords** — Check the filename against the signals in the table above. A match here is usually sufficient.
+2. **Extension bias** — If the filename is ambiguous: `.pptx` → `lecture`, `.xlsx` → `reference`. For `.pdf`/`.docx`, continue to step 3.
+3. **Quick content skim** — Read only the first 1–2 pages. Look for structural signals: slides/bullets → `lecture`, company narrative → `case-study`, questions with answers → `practice-problems`, academic citations → `supplementary-reading`, tables/schedules → `reference`.
+4. **Fallback** — If still uncertain, classify as `supplementary-reading`. This is the safest default because it keeps the content separate and accurately typed.
 
-2. **Extension bias** — When the filename is ambiguous:
-   - `.pptx` → default to `lecture` (slide decks are almost always lecture material)
-   - `.xlsx` → default to `reference` (spreadsheets are almost always reference data)
-   - `.pdf` and `.docx` are ambiguous — proceed to the next heuristic
+### 1c: Assign Numbers
 
-3. **Content structure sampling** — For ambiguous `.pdf` and `.docx` files, read the first 2–3 pages and look for structural signals:
-   - **Numbered slides, bullet-heavy layout, learning objectives** → `lecture`
-   - **Company name in title, narrative prose, situation/analysis/recommendation structure** → `case-study`
-   - **Dense academic text, citations, abstract** → `supplementary-reading`
-   - **Numbered questions, "Answer:", multiple choice options, point values** → `practice-problems`
-   - **Tables of formulas, course schedule, grading breakdown** → `reference`
+- **Lecture files first:** Sort lecture-classified files by apparent course order (use numbering in filenames, topic progression, or syllabus order if available). Assign sequential numbers 1, 2, 3, ..., N.
+- **Non-lecture files after:** Assign sequential numbers starting at N+1, in any reasonable order (alphabetical by filename is fine).
 
-4. **Fallback** — If still uncertain after content sampling, classify as `supplementary-reading`. This is the safest default because it ensures the file gets its own study note rather than being merged into an unrelated lecture.
+### 1d: Output a Classification Table
 
-### Phase C: Group and Number
+Before dispatching subagents, output a markdown table summarizing the classification for transparency:
 
-**Lecture files:** Apply the existing grouping heuristics to files classified as `lecture`:
-- **Naming patterns** — matching lecture numbers (e.g., `lecture-05-slides.pdf` + `lecture-05-notes.docx`).
-- **Topic keywords** — files mentioning the same subject (e.g., `capital-budgeting-slides.pdf` + `NPV-reading.pdf`).
-- **Sequential numbering** — files numbered in sequence map to sequential lectures.
-- **Content sampling** — if naming is ambiguous, read the first page of each file to determine topic alignment.
+```
+| # | File | Type | Output File |
+|---|------|------|-------------|
+| 1 | lecture-01-slides.pptx | lecture | lecture-01-intro.md |
+| 2 | lecture-02-slides.pptx | lecture | lecture-02-segmentation.md |
+| ... | ... | ... | ... |
+| 9 | gucci-case.pdf | case-study | lecture-09-gucci-case.md |
+| 10 | syllabus.pdf | reference | lecture-10-syllabus.md |
+```
 
-Assign each lecture group a sequential lecture number (1, 2, 3, ..., N) based on apparent course order.
-
-**Non-lecture files:** Group thematically among themselves using topic similarity:
-- Case studies that share a topic → combine into one supplementary note (e.g., two market-entry case studies → "Case Studies: Market Entry Strategies").
-- Practice problems that cover similar material → combine into one supplementary note (e.g., "Practice Problems: Midterm Review").
-- Supplementary readings on the same theme → combine into one supplementary note.
-- Reference materials that span the course → one supplementary note per logical group (e.g., "Reference: Course Formula Sheet").
-- Standalone items that have no thematic overlap with anything else → their own supplementary note.
-
-Assign supplementary groups sequential numbers starting after the last lecture: N+1, N+2, N+3, ...
-
-**Coverage check:** After grouping, verify that every file in `source-materials/` appears in exactly one group. If any file was missed, classify it as `supplementary-reading` and assign it to an existing thematic group or create a new one. No content may be dropped.
+This table serves as the dispatch plan. Verify every source file appears exactly once before proceeding.
 
 ## Step 2: File Reading Strategies
 
@@ -101,15 +80,14 @@ Understand how to extract content from each format before dispatching subagents 
 
 ## Step 3: Size Agents
 
-Determine how to distribute work across parallel subagents. The goal is to balance throughput against context-window limits — small groups fit two-per-agent without crowding context, while dense groups need a full agent's attention to avoid truncation or shallow coverage.
+Determine how to distribute files across parallel subagents. Each source file produces one study note — no merging.
 
-- **Small groups** (each source file under ~20 slides or ~10 pages): pair 2 groups per subagent.
-- **Dense groups** (any source file is 20+ slides or 10+ pages of heavy text): assign 1 group per subagent.
-- **Cap at 5 parallel subagents.** If groups exceed what 5 agents can handle, process in sequential batches: dispatch the first batch, wait for all to complete, then dispatch the next.
-- **Process lecture groups first, then supplementary groups.** This ensures lecture numbering is finalized before supplementary notes are assigned their N+1, N+2, ... numbers.
+- **Small files** (under ~20 slides or ~10 pages): pair 2 files per subagent.
+- **Dense files** (20+ slides or 10+ pages of heavy text): assign 1 file per subagent.
+- **Cap at 5 parallel subagents.** If files exceed what 5 agents can handle, process in sequential batches: dispatch the first batch, wait for all to complete, then dispatch the next.
 
 To estimate density without reading entire files:
-- PDFs: read the first few pages. Heavily text-based with small font = dense. Mostly bullet points and diagrams = small.
+- PDFs: skim the first few pages. Dense text with small font = dense. Mostly bullet points and diagrams = small.
 - PPTXs: check slide count if discernible. Under 20 slides = small, 20+ = dense.
 - DOCXs: check page count. Under 10 pages = small, 10+ = dense.
 
@@ -117,15 +95,15 @@ To estimate density without reading entire files:
 
 For each subagent, provide the appropriate prompt below with bracketed values filled in. Use a fenced code block (not `---` delimiters) when embedding the prompt, to avoid YAML frontmatter confusion.
 
-Each subagent writes its output file immediately upon completion — do not accumulate files in memory. This preserves partial progress if the pipeline is interrupted and keeps memory usage manageable.
+Each source file gets its own study note — never combine multiple source files into one note. Each subagent writes its output file immediately upon completion.
 
-**For lecture groups** (type = lecture):
+**For lecture files** (type = lecture):
 
 ````
-Subagent task: Produce study notes for [Lecture Title(s)]
+Subagent task: Produce study notes for [Lecture Title]
 
-Read these source files:
-- [list each file path, e.g., source-materials/lecture-05-slides.pdf]
+Read this source file:
+- [file path, e.g., source-materials/lecture-05-slides.pdf]
 
 Read the format specification at references/study-notes-format.md before writing anything.
 That file is the authoritative contract — follow it exactly.
@@ -140,19 +118,17 @@ Requirements:
    - Set title in the format "Lecture N: Topic Name"
 2. Include all 7 required sections in the order defined by references/study-notes-format.md.
 3. The glossary section contains every significant term from the source material.
-   Target at least 10 terms per lecture — this threshold exists because the glossary
-   is the sole input for flashcard generation downstream; missing terms mean missing flashcards.
-   Every term needs a definition and [Related: ...] cross-references.
+   Target at least 10 terms per lecture. Every term needs a definition and [Related: ...] cross-references.
 4. Write the file to disk immediately upon completion. Do not wait.
 ````
 
-**For supplementary groups** (type = supplementary):
+**For non-lecture files** (type = case-study, supplementary-reading, practice-problems, or reference):
 
 ````
-Subagent task: Produce study notes for [Descriptive Title, e.g., "Case Studies: Market Entry Strategies"]
+Subagent task: Produce study notes for [Descriptive Title, e.g., "Case Study: Gucci Brand Strategy"]
 
-Read these source files:
-- [list each file path, e.g., source-materials/case-uber-expansion.pdf]
+Read this source file:
+- [file path, e.g., source-materials/gucci-case.pdf]
 
 Read the format specification at references/study-notes-format.md before writing anything.
 That file is the authoritative contract — follow it exactly.
@@ -164,13 +140,15 @@ Write the output to:
 Requirements:
 1. Include YAML frontmatter with title, type, source_files, topics, and lecture_number (per the format spec).
    - Set type: supplementary
-   - Set title as a descriptive name WITHOUT the "Lecture N:" prefix
-     (e.g., "Case Studies: Market Entry Strategies" or "Practice Problems: Midterm Review")
+   - Set title as a descriptive name WITHOUT the "Lecture N:" prefix.
+     Use the content type as a prefix (e.g., "Case Study: Gucci Brand Strategy",
+     "Practice Problems: Midterm Review", "Reference: Course Syllabus",
+     "Supplementary Reading: Post-It Note Innovation")
    - Set lecture_number to the assigned integer [N+x]
 2. Include all 7 required sections in the order defined by references/study-notes-format.md.
    Adapt section content to the material type:
    - For case studies: the Case Studies section is the centerpiece; Key Concepts should
-     extract the strategic/analytical concepts illustrated by the cases.
+     extract the strategic/analytical concepts illustrated by the case.
    - For practice problems: the Formulas & Quantitative Tools section should capture any
      solution methods; Key Concepts should cover the topics the problems test.
    - For supplementary readings: emphasize the Overview and Key Concepts sections to
@@ -188,7 +166,7 @@ Requirements:
 
 After all subagents finish, verify every output file. The 7 required section headers are defined in `references/study-notes-format.md` — check against that list (do not maintain a separate list here).
 
-1. **File existence** — Glob `study-notes/*.md`. Confirm one file per group from Step 1 (both lecture and supplementary groups).
+1. **File existence** — Glob `study-notes/*.md`. Confirm one file per source file from Step 1 (the count of study notes must equal the count of source files).
 2. **Frontmatter** — Read the first 20 lines of each file. Verify:
    - YAML frontmatter block is present (opens and closes with `---`).
    - Fields `title`, `type`, `source_files`, `topics`, `lecture_number` all exist and are non-empty.
