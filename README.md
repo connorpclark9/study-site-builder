@@ -33,27 +33,23 @@ Follow the prompts to authenticate with your Anthropic account.
 
 ### 2. Install This Plugin
 
-**Option A: From a marketplace (if available)**
-
-```bash
-/plugin install study-site-builder
-```
-
-**Option B: From this repository**
-
-Clone the repo and load it directly:
+Clone the repo to a permanent location on your machine:
 
 ```bash
 git clone https://github.com/connorpclark9/study-site-builder.git
 ```
 
-Then start Claude Code with the plugin loaded:
+Then start Claude Code with the plugin loaded, passing the **full absolute path** to the cloned repo:
 
 ```bash
-claude --plugin-dir ./study-site-builder
+# macOS / Linux
+claude --plugin-dir /path/to/study-site-builder
+
+# Windows
+claude --plugin-dir "C:\path\to\study-site-builder"
 ```
 
-Or, for permanent installation, add the plugin directory to your Claude Code settings. Open your settings file (`~/.claude/settings.json`) and add the path under plugins.
+You will need to pass this flag every time you start Claude Code for a project that uses this plugin.
 
 ### 3. Set Up Your Course Materials
 
@@ -80,7 +76,7 @@ claude
 Then type:
 
 ```
-/study-site start
+/study-site-builder:start
 ```
 
 The pipeline runs through seven phases, pausing between each one:
@@ -160,7 +156,7 @@ Full practice exams with multiple question types, answer checking, and scoring.
 Generate additional exams at any time:
 
 ```
-/study-site add-exam
+/study-site-builder:exam-generator
 ```
 
 You will be prompted to:
@@ -175,7 +171,7 @@ New exams are added to your existing site without rebuilding everything.
 Launch an interactive study session:
 
 ```
-/study-site tutor
+/study-site-builder:tutor
 ```
 
 The tutor knows your entire course and can:
