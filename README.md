@@ -2,18 +2,13 @@
 
 > Turn a folder of course materials into a polished study website
 
-<!-- TODO: Add hero screenshot showing a completed study site -->
-<!-- Screenshot: Full-page view of a generated site's home page (index.html) with the Midnight Blue theme -->
-![Example study site](screenshots/hero.png)
+![Example study site](screenshots/home-page.png)
 
 ## What This Does
 
-Drop your lecture slides, PDFs, notes, and readings into a single folder, start the pipeline, and get a complete multi-page study website. The site includes interactive flashcards, timed practice exams, a detailed study map showing how topics connect and build on each other (from zero to full comprehension), and a condensed last-minute review page — all generated directly from your course materials.
+Drop your lecture slides, PDFs, notes, and readings into a single folder, start the pipeline, and get a complete multi-page study website. The site includes interactive flashcards, practice exams, a detailed study map showing how topics connect and build on each other (from zero to full comprehension), and a condensed last-minute review page — all generated directly from your course materials.
 
 The pipeline runs in **step-by-step interactive mode**: it pauses after each phase to show you what was produced and ask before continuing. This lets you review outputs at each stage, stop and resume at any point, and avoid burning through a long pipeline only to find a problem at the end.
-
-<!-- TODO: Add a 3-panel screenshot showing flashcards, study map, and practice exam side by side -->
-![Site features overview](screenshots/features-overview.png)
 
 ## Prerequisites
 
@@ -88,9 +83,6 @@ Then type:
 /study-site start
 ```
 
-<!-- TODO: Add screenshot of the pipeline running (showing phase progress) -->
-![Pipeline running](screenshots/pipeline-running.png)
-
 The pipeline runs through seven phases, pausing between each one:
 
 1. **Content Ingestion** — Reads every file in `source-materials/` in parallel (one agent per file), classifies each by content type (lecture, case study, practice problems, reference, or supplementary reading), and produces structured markdown study notes in `study-notes/`.
@@ -129,37 +121,39 @@ https://YOUR-USERNAME.github.io/YOUR-REPO-NAME
 
 ## Generated Pages
 
-<!-- TODO: Add a screenshot for each page type below -->
-
 ### Home Page
 The landing page with course name and quick links to all study resources.
 
-![Home page](screenshots/page-home.png)
+![Home page](screenshots/home-page.png)
 
 ### Study Map
 Full conceptual map of the course: lecture-by-lecture progression with driving questions and core concepts, cross-cutting themes that span multiple lectures, a concept dependency graph showing what builds on what, and a supplementary topics section for case studies and readings. Designed to take you from zero to complete understanding.
 
-![Study map](screenshots/page-study-map.png)
+![Study map](screenshots/study-map.png)
+
+![Study map expanded](screenshots/study-map-expanded.png)
 
 ### Flashcards
 Interactive flashcard app with deck selection, flip animation, keyboard shortcuts, and progress tracking.
 
-![Flashcards](screenshots/page-flashcards.png)
+![Flashcards](screenshots/flashcards.png)
 
 ### Last-Minute Review
 Condensed single-page refresher with key formulas, critical terms, and must-remember facts. Print-optimized.
 
-![Last-minute review](screenshots/page-review.png)
+![Last-minute review](screenshots/last-minute-review.png)
 
 ### Sample Questions
 Curated questions with spoiler-style answer reveals, organized by topic.
 
-![Sample questions](screenshots/page-sample-questions.png)
+![Sample questions](screenshots/sample-questions.png)
 
 ### Practice Exams
-Full practice exams with multiple question types, answer checking, scoring, and explanations.
+Full practice exams with multiple question types, answer checking, and scoring.
 
-![Practice exam](screenshots/page-exam.png)
+![Practice exam](screenshots/practice-exam.png)
+
+![Practice exam graded](screenshots/practice-exam-graded.png)
 
 ## Adding More Practice Exams
 
@@ -194,9 +188,6 @@ The tutor knows your entire course and can:
 ## Available Themes
 
 Choose a visual theme during the Design phase, or change it later by re-running the pipeline.
-
-<!-- TODO: Add a screenshot strip showing all 5 themes side by side (same page, different themes) -->
-![Theme comparison](screenshots/themes.png)
 
 | Theme | Style | Description |
 |---|---|---|
