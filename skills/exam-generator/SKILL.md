@@ -60,7 +60,7 @@ Use this path when called by the orchestrator during a full pipeline run. Genera
 3. Set `exam-generator` phase status to `in-progress` in `pipeline-status.json`.
 4. Glob `study-notes/*.md` and read only the frontmatter of each file (first 20 lines) to get `title`, `type`, and `lecture_number`. Separate into lecture notes and supplementary notes.
 
-### B2: Calculate Focus Distribution
+### B2: Calculate Focus Distribution and Write Allocation Manifests
 
 Distribute lecture coverage across exams so each exam draws from different parts of the course. This ensures variety — students get meaningfully different practice each time.
 
@@ -71,7 +71,42 @@ Sort lecture notes by `lecture_number`. Assign each lecture to an exam using rou
 
 Each exam: 60% of questions from its assigned lectures, 40% spread evenly across all other lecture notes. Supplementary notes contribute to all exams equally (up to 10% each, drawn from the 40% pool).
 
-If `examCount` is 1, skip focus distribution — use balanced coverage.
+If `examCount` is 1, skip focus distribution — use balanced coverage (evenly distribute questions across all notes).
+
+**After calculating distribution, compute exact per-note question counts and write one manifest file per exam.** This is what allows each exam agent to read only the study notes it needs, rather than all notes.
+
+For each exam N, write `build/exam-[N]-manifest.json` with this structure:
+
+```json
+{
+  "examNumber": 1,
+  "totalQuestions": 30,
+  "allocations": [
+    {
+      "file": "study-notes/lecture-01-foundations.md",
+      "questionsToGenerate": 5,
+      "role": "focus"
+    },
+    {
+      "file": "study-notes/lecture-03-capacity.md",
+      "questionsToGenerate": 3,
+      "role": "other"
+    },
+    {
+      "file": "study-notes/supplementary-costing.md",
+      "questionsToGenerate": 2,
+      "role": "supplementary"
+    }
+  ]
+}
+```
+
+Rules for manifest construction:
+- Round question counts to whole numbers; adjust the largest allocation to absorb any rounding remainder so total equals `questionsPerExam` exactly.
+- Omit any study note with a computed allocation of 0 questions — exam agents must not read notes that contribute nothing.
+- List allocations in the order agents should read them: focus notes first, then other lecture notes, then supplementary notes.
+
+Create `build/` if it does not already exist. Write all exam manifests before dispatching any agents.
 
 ### B3: Copy Shared Assets (Once)
 
@@ -91,43 +126,42 @@ Generate Practice Exam [N] for [courseName].
 Parameters:
 - Exam number: [N]
 - Exam ID: practice-exam-[N]
-- Question count: [questionsPerExam]
 - Question types: [comma-separated list, e.g., multiple-choice, short-answer]
 - Exam format: [card-style or classic-style]
 - pluginDir: [absolute path]
 - Course name: [courseName]
-- Focus lectures: [comma-separated lecture_numbers, e.g., 1,3,5,7]
-  — draw 60% of questions from these lectures, 40% from all others
+- Manifest: build/exam-[N]-manifest.json
 - Output files:
   - JSON: site/data/exam-[N].json
   - HTML: site/exams/practice-exam-[N].html
 
-STEP 1 — Generate and verify questions (single pass per note):
-Process each study note in study-notes/ one at a time: read it, generate its
-allocated questions, verify each immediately before moving to the next note.
+STEP 0 — Read your manifest (do this first, before opening any study note):
+Read build/exam-[N]-manifest.json. This tells you exactly which study notes to
+read and how many questions to generate from each. Do NOT read any study note
+that is not listed in the manifest — those notes contribute 0 questions to this
+exam and reading them wastes context.
 
-Question allocation:
-- Focus lectures get 60% of total questions, distributed evenly among them.
-- All other lecture notes share 40%, distributed evenly.
-- Supplementary notes (type: supplementary) contribute up to 10% each from the
-  40% pool. If no supplementary notes, allocate 100% to lectures.
-- No single lecture >40% of total unless only 2 lectures in the focus set.
-- Question cap: never exceed 60 questions total.
+Your total question target is manifest.totalQuestions.
 
-For each note (read → generate → verify before moving on):
-1. Read the study note completely.
-2. Generate this note's allocated questions:
+STEP 1 — Generate and verify questions (work through manifest allocations in order):
+For each entry in manifest.allocations (read → generate → verify before moving on):
+
+1. Read the study note at the listed file path. Read it once and completely.
+   Do not re-read it after this step.
+2. Generate exactly the number of questions specified in questionsToGenerate:
    - Difficulty: 30% easy (definitions, recall), 50% medium (application,
      comparison, calculation), 20% hard (synthesis, scenario-based).
+     Round to nearest whole number; apply any remainder to medium questions.
    - Use only the question types listed in the Parameters above.
    - Tag each question: sourceLecture, difficulty, type,
-     id format: exam-[N]-q-NNN (three-digit sequence).
-3. Verify each question immediately:
+     id format: exam-[N]-q-NNN (three-digit, sequential across the whole exam).
+3. Verify each question immediately after generating it:
    - Correct answer explicitly supported by note content just read.
    - MC/MMC: every distractor clearly wrong and plausible.
    - Short answer: expected answer and keywords match note content.
    - Long answer: sample answer and grading criteria match note content.
    - Set verified: true or verified: false with verificationNote.
+4. Move to the next allocation entry.
 
 STEP 2 — Self-audit:
 Collect verified:false questions and ambiguous answers. Auto-resolve:
@@ -135,8 +169,9 @@ Collect verified:false questions and ambiguous answers. Auto-resolve:
 - Ambiguous but partially supported → rewrite to eliminate ambiguity, or remove.
 - Distractor arguably correct → replace with clearly wrong alternative.
 Log all resolutions in autoResolvedFlags.
-If count drops below 80% of target, generate replacements from
-under-represented lectures and verify them before including.
+If total verified count drops below 80% of manifest.totalQuestions, generate
+replacements drawn from the focus-role notes (re-read only if necessary) and
+verify them before including. Do not generate more than needed to reach 80%.
 
 STEP 3 — Write site/data/exam-[N].json:
 Follow references/exam-format.md exactly.
@@ -178,32 +213,37 @@ After all exam agents complete:
 
 When Entry Path A is used, execute these steps sequentially for the single exam being generated.
 
+### Step 0: Build Allocation Plan (Read Frontmatter Only)
+
+Before reading any study note in full, build a question allocation plan so you only read the notes you actually need.
+
+1. Glob `study-notes/*.md`. For each file, read only the frontmatter (first 20 lines) to get `type` and `lecture_number`. Do not read the full note body yet.
+2. Separate into `lecture` notes and `supplementary` notes.
+3. Compute per-note question counts:
+   - **No focus areas:** Allocate 80% of `questionsPerExam` to lecture notes (evenly distributed) and up to 10% per supplementary note from the remaining 20%. If no supplementary notes, allocate 100% to lectures.
+   - **With focus areas (user specified):** Weight 60% toward named focus lectures and 40% across remaining lecture notes. Supplementary notes contribute up to 10% each from the 40% pool.
+   - **Question cap** — never exceed 60 questions total.
+   - **Balance** — no single lecture >40% of total; no single supplementary note >10%.
+4. Round all counts to whole numbers. Adjust the largest allocation so the total equals `questionsPerExam` exactly.
+5. **Drop any note with a computed allocation of 0 questions from the reading list.** These notes will not be read.
+6. Record the final plan as an ordered list: `[{ file, questionsToGenerate, role }]`. Order: focus notes first, then other lecture notes, then supplementary.
+
 ### Step 1: Question Generation and Verification (Single Pass)
 
-Process one study note at a time: read it, generate its questions, verify each immediately before moving to the next note.
+Work through the allocation plan from Step 0 in order. For each entry (read → generate → verify before moving on):
 
-**Before starting**, determine how many questions each note should contribute:
-- Read the `type` field from each study note's frontmatter (if absent, treat as `lecture`).
-- **No focus areas:** Allocate 80% to `type: lecture` notes (evenly distributed) and 20% to `type: supplementary` notes. If no supplementary notes, allocate 100% to lectures.
-- **With focus areas:** Weight 60% toward focus topics and 40% across remaining material.
-- **Question cap** — never exceed 60 questions.
-- **Balance** — no single lecture >40% of total; no single supplementary note >10%.
-
-**For each study note (read → generate → verify before moving on):**
-
-1. Read the study note completely.
-2. Identify key concepts, definitions, formulas, processes, and relationships.
-3. Generate this note's allocated questions:
-   - **Difficulty:** 30% easy, 50% medium, 20% hard.
+1. Read the study note at the listed path **completely**. Read it once — do not re-read it later.
+2. Generate exactly the `questionsToGenerate` count for this note:
+   - **Difficulty:** 30% easy, 50% medium, 20% hard. Round to whole numbers; apply remainder to medium.
    - **Question types:** use only types from `designChoices.questionTypes`. Types defined in `references/exam-format.md`.
-   - Tag each question: `sourceLecture`, `difficulty`, `type`, `id` in `examId-q-NNN` format.
-4. **Verify each question immediately:**
+   - Tag each question: `sourceLecture`, `difficulty`, `type`, `id` in `examId-q-NNN` format (sequential across the whole exam).
+3. **Verify each question immediately:**
    - Correct answer explicitly supported by content just read.
    - MC/MMC: every distractor clearly wrong and plausible.
    - Short answer: expected answer and keywords match note content.
    - Long answer: sample answer and grading criteria match note content.
    - Set `verified: true` or `verified: false` with `verificationNote`.
-5. Move to the next study note.
+4. Move to the next entry in the allocation plan.
 
 ### Step 2: Self-Audit Pass
 

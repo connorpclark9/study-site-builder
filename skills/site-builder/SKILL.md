@@ -482,14 +482,20 @@ Build a chunk dispatch table:
 | 02 | Lectures 3–4 | ... | site/study-map-chunks/chunk-02.html |
 | ... | ... | ... | ... |
 
-Supplementary notes are **not chunked** — they are handled entirely by the assembler agent in Step 7b-3.
+Supplementary notes are **not grouped with lecture chunks** but are dispatched as their own dedicated agent in parallel with the lecture chunk agents. If there are supplementary notes, add a supplementary entry to your dispatch table:
+
+| Chunk # | Type | Study note files | Output path |
+|---------|------|------------------|-------------|
+| supplementary | Supplementary | study-notes/[all supplementary *.md files] | site/study-map-chunks/supplementary.html |
+
+If there are no supplementary notes, skip the supplementary agent entirely — the assembler will omit the supplementary section.
 
 Create `site/study-map-chunks/` if it does not already exist.
 
 ### 7b-2: Dispatch ALL Chunk Agents in ONE Message
 
 > **⚠️ CRITICAL — READ THIS BEFORE DISPATCHING:**
-> ALL chunk subagents MUST be dispatched in a **single message** as parallel Agent tool calls.
+> ALL chunk subagents (lecture chunks AND the supplementary agent, if applicable) MUST be dispatched in a **single message** as parallel Agent tool calls.
 > - Do NOT dispatch chunks one at a time.
 > - Do NOT loop through the chunk list and send one Agent call per iteration.
 > - Do NOT batch them into multiple rounds (e.g., "first 3, then the rest").
@@ -643,39 +649,95 @@ strategic lesson — what general principle does this case demonstrate?
 4. Write the fragment to: site/study-map-chunks/chunk-[NN].html
 ````
 
-Send ALL chunk agent calls in one message. Do not proceed to Step 7b-3 until every chunk agent has written its output file.
+If there are supplementary notes, include this agent in the **same single message** alongside the lecture chunk agents:
+
+````
+Study Map Supplementary Agent
+
+## Your inputs
+- Supplementary study notes: [list each path]
+- Conceptual map: synthesis/conceptual-map.md  (read ONLY the supplementary-related entries — you do not need the lecture progression)
+
+## Your output file
+site/study-map-chunks/supplementary.html
+
+## What to produce
+An HTML fragment containing:
+1. The supplementary divider:
+   ```html
+   <div class="supplementary-divider"><hr><span>Supplementary Material</span><hr></div>
+   ```
+2. One `.topic-block` per supplementary study note, using the same topic-block/subtopic pattern
+   as the lecture chunks, but with `.topic-eyebrow` set to "Supplementary" instead of a lecture range.
+   Include `.link-tag` cross-references to related lecture topic-blocks where relevant.
+
+Do NOT include `<html>`, `<head>`, `<body>`, `<nav>`, or any page shell. Just the raw HTML fragment.
+
+## Content depth requirements
+Apply the same content depth rules as the lecture chunk agents:
+- Explain, don't label. Every subtopic body needs opening prose (3–5 sentences), at least two
+  section-labeled content blocks, and a KEY INSIGHT box.
+- Use `<strong>` on named concepts, frameworks, critical distinctions, and decision rules.
+- Do NOT use `<details>/<summary>` elements.
+
+## ID uniqueness
+Use `t-supplementary-[slug]` for topic block IDs and `s-[concept-slug]-supp` for subtopic IDs.
+
+## Steps
+1. Read each supplementary study note once.
+2. Read the supplementary entries in conceptual-map.md once.
+3. Generate the fragment.
+4. Write to: site/study-map-chunks/supplementary.html
+````
+
+Send ALL chunk agent calls (lecture chunks + supplementary agent) in one message. Do not proceed to Step 7b-3 until every agent has written its output file.
 
 ### 7b-3: Dispatch the Assembler Agent
 
-After ALL chunk agents have completed, dispatch a **single** assembler agent. This runs sequentially after the parallel chunk batch — wait for all chunks to finish before sending this call.
+After ALL chunk agents (and the supplementary agent, if applicable) have completed, dispatch a **single** assembler agent. This runs sequentially after the parallel chunk batch — wait for all chunks to finish before sending this call.
+
+**The assembler's job is purely mechanical: read pre-built fragments, concatenate them, fill template placeholders, and write the output. It does NOT generate any new content.**
 
 ````
 Study Map Assembler Agent
 
-## Your inputs
-Read all of these before writing anything:
-- All chunk files: site/study-map-chunks/chunk-*.html  (read every file, in numerical order)
-- Conceptual map: synthesis/conceptual-map.md  (for Course Narrative and cross-cutting themes)
-- All supplementary study notes (type: supplementary): [list each path]
-- Page template: [pluginDir]/templates/page-templates/study-map.html
-- Design spec: design/design-spec.md  (for course name)
+## Your task
+Stitch pre-built HTML fragments into the final study-map.html page.
+This is a FILE CONCATENATION task, not a content generation task.
+Do not write any new content. Do not re-read any file more than once.
 
-## Your output
+## Inputs — read each file EXACTLY ONCE, in this order
+
+Step 1 — Read the template:
+- [pluginDir]/templates/page-templates/study-map.html
+
+Step 2 — Read course name:
+- design/design-spec.md  (extract course name only)
+
+Step 3 — Read the conceptual map for Course Narrative and central questions ONLY:
+- synthesis/conceptual-map.md  (extract: Course Narrative section + any overarching framing questions)
+
+Step 4 — Read chunk files in order (read each once, never re-read):
+- site/study-map-chunks/chunk-01.html
+- site/study-map-chunks/chunk-02.html
+- [continue for all chunk-NN.html files that exist]
+
+Step 5 — Read supplementary fragment (only if it exists):
+- site/study-map-chunks/supplementary.html
+
+After reading all files, do not read any file again. Proceed directly to assembly.
+
+## Output
 Write the completed page to: site/study-map.html
 
-## Instructions
+## Assembly instructions
 
-1. Read the page template. Identify all {{PLACEHOLDER}} tokens.
+1. **Course Narrative** — from what you read in conceptual-map.md, write 2–3 paragraphs
+   summarizing the arc of the course (how early topics build foundations for later ones,
+   what the big picture is). This goes above the topic accordion.
 
-2. Concatenate all chunk files in order (chunk-01, chunk-02, ...) to form the full
-   topic-block HTML for all lectures.
-
-3. From synthesis/conceptual-map.md, write the Course Narrative prose section (2–3 paragraphs
-   summarizing the arc of the course, how early topics lay groundwork for later ones, and what
-   the student should understand as the big picture). This goes above the topic accordion.
-
-4. If the course has 2–4 overarching framing questions that structure the entire course, render
-   them as a `.central-questions` grid above the topic accordion:
+2. **Central questions block** — if the course has 2–4 overarching framing questions,
+   render them as:
    ```html
    <div class="central-questions">
      <div class="cq-card">
@@ -685,30 +747,23 @@ Write the completed page to: site/study-map.html
      </div>
    </div>
    ```
-   If the course does not have clear framing questions, set {{CENTRAL_QUESTIONS}} to an empty string.
+   If no clear framing questions exist, use an empty string for {{CENTRAL_QUESTIONS}}.
 
-5. Generate the Supplementary Material section from the supplementary study notes. Use the same
-   `.topic-block` / `.subtopic` pattern but set `.topic-eyebrow` to "Supplementary" instead of
-   a lecture range. Add `.link-tag` cross-references to related lecture topic-blocks. Separate
-   this section from the main lecture content with:
-   ```html
-   <div class="supplementary-divider"><hr><span>Supplementary Material</span><hr></div>
-   ```
-   Omit this section entirely if there are no supplementary study notes.
+3. **Topic blocks** — concatenate the chunk files in numerical order. Then append the
+   supplementary fragment (if it exists) directly after the last chunk. This combined
+   string is the value for {{TOPIC_BLOCKS}}.
 
-6. Fill all {{PLACEHOLDER}} tokens in the template:
+4. **Fill placeholders** — replace every {{PLACEHOLDER}} token in the template:
    - {{COURSE_NAME}} → course name from design-spec.md
    - {{NAV_PLACEHOLDER}} → `<script src="js/nav.js"></script>`
    - {{CENTRAL_QUESTIONS}} → central questions block or empty string
-   - {{TOPIC_BLOCKS}} → concatenated chunk HTML + supplementary divider + supplementary topic-blocks
+   - {{TOPIC_BLOCKS}} → concatenated chunk HTML + supplementary fragment
 
-7. Validate before writing:
-   - No {{PLACEHOLDER}} markers remain in the output.
-   - Every `.topic-block` has at least one `.subtopic`.
-   - All IDs are unique — scan for duplicates.
-   - No `<details>` or `<summary>` elements anywhere on the page.
+5. **Validate** (quick scan only — do not re-read files):
+   - No {{PLACEHOLDER}} markers remain in the assembled string.
+   - No `<details>` or `<summary>` elements are present.
 
-8. Write the final assembled page to: site/study-map.html
+6. Write the final assembled string to: site/study-map.html
 ````
 
 ---
