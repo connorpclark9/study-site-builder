@@ -178,6 +178,8 @@ Include the appropriate section below **only** in the sub-PRD for that page type
 
 #### Study Map (`study-map`)
 
+**⚠️ The study map is NOT built as a standard single-agent sub-PRD. Do NOT generate a sub-PRD file for this page in Step 7, and do NOT dispatch a study-map agent in Step 8. The study map is built via the dedicated chunked parallel process in Step 7b. The rules below are used by the chunk agents dispatched in Step 7b — the orchestrator must embed them verbatim in each chunk agent's prompt.**
+
 ---
 
 ##### DESIGN GOAL
@@ -459,10 +461,263 @@ Generate curated study questions from `study-notes/`:
 
 ---
 
+## Step 7b: Build Study Map via Parallel Chunks
+
+The study map page contains full teaching-quality content for every concept in the course and grows very large for courses with many lectures. Building it as a single agent causes context overflows and failures. **This step is mandatory — the study map must always be built using the chunked parallel process below, never as a single agent.**
+
+The approach: each chunk agent handles exactly 2 lectures and writes a partial HTML fragment. After all chunks complete, an assembler agent stitches the fragments into the final page.
+
+### 7b-1: Plan the Chunks
+
+1. Glob `study-notes/*.md` and read the frontmatter of every file to get `lecture_number` and `type`.
+2. Separate lecture notes (`type: lecture`) from supplementary notes (`type: supplementary`).
+3. Sort the lecture notes by `lecture_number` ascending.
+4. Group them into **pairs of 2**. If the total count is odd, the last chunk contains one lecture.
+
+Build a chunk dispatch table:
+
+| Chunk # | Lecture numbers | Study note files | Output path |
+|---------|-----------------|------------------|-------------|
+| 01 | Lectures 1–2 | study-notes/lecture-01-*.md, study-notes/lecture-02-*.md | site/study-map-chunks/chunk-01.html |
+| 02 | Lectures 3–4 | ... | site/study-map-chunks/chunk-02.html |
+| ... | ... | ... | ... |
+
+Supplementary notes are **not chunked** — they are handled entirely by the assembler agent in Step 7b-3.
+
+Create `site/study-map-chunks/` if it does not already exist.
+
+### 7b-2: Dispatch ALL Chunk Agents in ONE Message
+
+> **⚠️ CRITICAL — READ THIS BEFORE DISPATCHING:**
+> ALL chunk subagents MUST be dispatched in a **single message** as parallel Agent tool calls.
+> - Do NOT dispatch chunks one at a time.
+> - Do NOT loop through the chunk list and send one Agent call per iteration.
+> - Do NOT batch them into multiple rounds (e.g., "first 3, then the rest").
+> - Every single chunk agent call must appear in the same message, submitted simultaneously.
+>
+> Sequential or batched dispatch defeats the entire purpose of chunking and will cause the same context overflow this step was designed to prevent.
+
+Each chunk agent receives only its 2 study notes and produces a raw HTML fragment — no `<html>`, `<head>`, `<body>`, or `<nav>` tags. Just the `.topic-block` elements for its assigned lectures.
+
+Use the following prompt for each chunk agent (fill in all bracketed values before dispatching):
+
+````
+Study Map Chunk Agent — Lectures [A]–[B]
+
+## Your inputs
+- Study note A: [full path to lecture A study note]
+- Study note B: [full path to lecture B study note]   ← omit this line for single-lecture chunks
+- Conceptual map: synthesis/conceptual-map.md   (read ONLY the Lecture Progression entries for lectures [A] and [B] — you do not need the rest)
+
+## Your output file
+site/study-map-chunks/chunk-[NN].html   ← zero-padded chunk number, e.g., chunk-01.html
+
+## What to produce
+An HTML fragment containing ONLY the `.topic-block` elements for the lectures assigned to you.
+Do NOT include `<html>`, `<head>`, `<body>`, `<nav>`, or any page shell. Just the raw topic-block HTML.
+
+## ID uniqueness — REQUIRED
+All IDs must be globally unique across the assembled page (chunks are concatenated, so IDs collide
+if two chunks use the same slug). Include the lecture number in every ID slug:
+- Topic blocks: `t-lecture-[NN]` (e.g., `t-lecture-03`)
+- Subtopics: `s-[concept-slug]-[NN]` (e.g., `s-npv-03`, `s-critical-ratio-04`)
+
+## Content depth requirements — apply these exactly
+
+### DESIGN GOAL
+The study map is the most important page in the entire site. It must be comprehensive and deep
+enough that a student with zero prior knowledge could read it and develop a complete, exam-ready
+understanding of the entire course. It is NOT a list of topic labels — it is the entire course
+distilled into one navigable, educational page. Every concept must be fully taught: what it is,
+why it matters, how it works, how to use it, what it connects to.
+
+Think of each subtopic body as a mini-lecture on that concept.
+
+### CONTENT SOURCES
+1. Your assigned study notes — the substantive content: full concept explanations, framework
+   details, examples, worked calculations, key terms.
+2. synthesis/conceptual-map.md (your lecture entries only) — driving questions, "Builds On",
+   "Leads To", relationship metadata.
+
+### CONTENT DEPTH — NON-NEGOTIABLE
+- Explain, don't label. Write full teaching prose, not definitions.
+- Every subtopic body: at least one opening prose paragraph (3–5 sentences), at least two
+  section-labeled content blocks, and a KEY INSIGHT box. Shorter than this is too shallow.
+- Preserve frameworks completely. Never compress a 5-step framework into a single bullet.
+- Include real examples and numbers from the study notes.
+- Cover everything. Every concept from every Key Concepts section and every framework from every
+  Frameworks & Mental Models section must appear as a subtopic.
+
+### WRITING VOICE
+Direct, authoritative, educational. Address the student as "you" where helpful. Name the "why"
+before the "what." Be specific rather than vague. Connect every concept to the course's core
+question or framework.
+
+### KEYWORD HIGHLIGHTING
+Use `<strong>` on named concepts, frameworks, critical distinctions, decision rules, and
+quantitative thresholds. Do NOT bold every word — only what a student would underline.
+
+### EXACT HTML STRUCTURE FOR EVERY SUBTOPIC BODY
+
+```html
+<p class="prose">[Opening: what it is and why it matters. 3–5 sentences. Use <strong> for key terms.]</p>
+
+<div class="section-label">THE [CONCEPT] IN FULL</div>
+<p class="prose">[Full mechanism, structure, or formula in prose.]</p>
+
+<div class="section-label">KEY [COMPONENTS / STEPS / VARIABLES]</div>
+<ul class="bullets">
+  <li><strong>Term</strong> — Full sentence explanation with example where available.</li>
+</ul>
+
+<!-- FORMULA BLOCK — include whenever a formula, ratio, or quantitative rule is involved -->
+<div class="section-label">THE FORMULA</div>
+<div class="formula-wrap">
+  <div class="formula">FORMULA = WRITTEN OUT with Unicode subscripts (₀₁₂ etc.)</div>
+  <div class="formula-explain">
+    <strong>Variables:</strong><br>X = [what X is and its units]<br>
+    <strong>Intuition:</strong> [2–4 sentences on WHY the formula is structured this way.]
+  </div>
+</div>
+
+<!-- KEY INSIGHT BOX — REQUIRED at the end of every subtopic, before link-tags -->
+<div class="insight-box">
+  <div class="label">KEY INSIGHT</div>
+  <p>[2–4 sentences. The single most important takeaway, exam implication, or connection
+     to the broader course. Use <strong> for the critical claim. NOT a restatement of the definition.]</p>
+</div>
+
+<!-- RELATED CONCEPTS — always last -->
+<div class="link-tags">
+  <span class="link-tag">Related: [Concept Name]</span>
+</div>
+```
+
+### TOPIC-BLOCK HTML STRUCTURE
+
+```html
+<div class="topic-block" id="t-lecture-[NN]">
+  <div class="topic-header" onclick="toggleTopic('t-lecture-[NN]')">
+    <div class="topic-icon">[emoji]</div>
+    <div class="topic-text">
+      <div class="topic-eyebrow">Lecture [N] · [Theme Label]</div>
+      <div class="topic-title">[Lecture Title]</div>
+      <div class="topic-desc">[Comma-separated subtopic names]</div>
+    </div>
+    <div class="topic-right">
+      <span class="topic-pill">[N] sub-topics</span>
+      <span class="chevron">▶</span>
+    </div>
+  </div>
+  <div class="topic-body">
+    <div class="subtopic-grid">
+      <div class="subtopic" id="s-[concept-slug]-[NN]">
+        <div class="subtopic-hdr" onclick="toggleSub('s-[concept-slug]-[NN]')">
+          <div class="dot"></div>
+          <div class="subtopic-title">[Concept Name]</div>
+          <span class="sub-chev">▶</span>
+        </div>
+        <div class="subtopic-body">
+          <!-- full subtopic content as described above -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+```
+
+### CASE STUDY SUBTOPICS
+Use `<div class="dot case"></div>`. Open with the business situation and strategic question.
+Walk through analytical frameworks applied. Include key quantitative data. End with the
+strategic lesson — what general principle does this case demonstrate?
+
+### DO NOT
+- Do NOT use `<details>/<summary>` elements.
+- Do NOT include a sidebar table of contents.
+- Do NOT include a page shell (html/head/body tags).
+
+## Steps
+1. Read both assigned study notes completely.
+2. Read the relevant Lecture Progression entries in conceptual-map.md for your lecture numbers.
+3. Generate one `.topic-block` per lecture with all its `.subtopic` cards.
+4. Write the fragment to: site/study-map-chunks/chunk-[NN].html
+````
+
+Send ALL chunk agent calls in one message. Do not proceed to Step 7b-3 until every chunk agent has written its output file.
+
+### 7b-3: Dispatch the Assembler Agent
+
+After ALL chunk agents have completed, dispatch a **single** assembler agent. This runs sequentially after the parallel chunk batch — wait for all chunks to finish before sending this call.
+
+````
+Study Map Assembler Agent
+
+## Your inputs
+Read all of these before writing anything:
+- All chunk files: site/study-map-chunks/chunk-*.html  (read every file, in numerical order)
+- Conceptual map: synthesis/conceptual-map.md  (for Course Narrative and cross-cutting themes)
+- All supplementary study notes (type: supplementary): [list each path]
+- Page template: [pluginDir]/templates/page-templates/study-map.html
+- Design spec: design/design-spec.md  (for course name)
+
+## Your output
+Write the completed page to: site/study-map.html
+
+## Instructions
+
+1. Read the page template. Identify all {{PLACEHOLDER}} tokens.
+
+2. Concatenate all chunk files in order (chunk-01, chunk-02, ...) to form the full
+   topic-block HTML for all lectures.
+
+3. From synthesis/conceptual-map.md, write the Course Narrative prose section (2–3 paragraphs
+   summarizing the arc of the course, how early topics lay groundwork for later ones, and what
+   the student should understand as the big picture). This goes above the topic accordion.
+
+4. If the course has 2–4 overarching framing questions that structure the entire course, render
+   them as a `.central-questions` grid above the topic accordion:
+   ```html
+   <div class="central-questions">
+     <div class="cq-card">
+       <div class="cq-number">Question 1</div>
+       <div class="cq-question">[The overarching question]</div>
+       <div class="cq-tool">Tool: <strong>[Framework]</strong> — [brief description]</div>
+     </div>
+   </div>
+   ```
+   If the course does not have clear framing questions, set {{CENTRAL_QUESTIONS}} to an empty string.
+
+5. Generate the Supplementary Material section from the supplementary study notes. Use the same
+   `.topic-block` / `.subtopic` pattern but set `.topic-eyebrow` to "Supplementary" instead of
+   a lecture range. Add `.link-tag` cross-references to related lecture topic-blocks. Separate
+   this section from the main lecture content with:
+   ```html
+   <div class="supplementary-divider"><hr><span>Supplementary Material</span><hr></div>
+   ```
+   Omit this section entirely if there are no supplementary study notes.
+
+6. Fill all {{PLACEHOLDER}} tokens in the template:
+   - {{COURSE_NAME}} → course name from design-spec.md
+   - {{NAV_PLACEHOLDER}} → `<script src="js/nav.js"></script>`
+   - {{CENTRAL_QUESTIONS}} → central questions block or empty string
+   - {{TOPIC_BLOCKS}} → concatenated chunk HTML + supplementary divider + supplementary topic-blocks
+
+7. Validate before writing:
+   - No {{PLACEHOLDER}} markers remain in the output.
+   - Every `.topic-block` has at least one `.subtopic`.
+   - All IDs are unique — scan for duplicates.
+   - No `<details>` or `<summary>` elements anywhere on the page.
+
+8. Write the final assembled page to: site/study-map.html
+````
+
+---
+
 ## Step 8: Dispatch Parallel Page Agents
 
+**Exclude `study-map.html` — it was already built in Step 7b. Do NOT dispatch a study-map agent here.**
 
-For each sub-PRD, dispatch a subagent using the Agent tool. Send ALL Agent calls in a single message to maximize parallelism.
+For each remaining sub-PRD (all pages except study-map), dispatch a subagent using the Agent tool. Send ALL Agent calls in a single message to maximize parallelism.
 
 Each subagent prompt must include:
 1. The full sub-PRD content (read the file and embed it)

@@ -8,7 +8,9 @@
 
 ## What This Does
 
-Drop your lecture slides, PDFs, notes, and readings into a single folder, run one command, and get a complete multi-page study website. The site includes interactive flashcards, timed practice exams, a detailed visual concept map showing how topics connect to take you from zero to full comprehension, and a condensed last-minute review page — all generated directly from your course materials.
+Drop your lecture slides, PDFs, notes, and readings into a single folder, start the pipeline, and get a complete multi-page study website. The site includes interactive flashcards, timed practice exams, a detailed study map showing how topics connect and build on each other (from zero to full comprehension), and a condensed last-minute review page — all generated directly from your course materials.
+
+The pipeline runs in **step-by-step interactive mode**: it pauses after each phase to show you what was produced and ask before continuing. This lets you review outputs at each stage, stop and resume at any point, and avoid burning through a long pipeline only to find a problem at the end.
 
 <!-- TODO: Add a 3-panel screenshot showing flashcards, study map, and practice exam side by side -->
 ![Site features overview](screenshots/features-overview.png)
@@ -70,7 +72,7 @@ mkdir source-materials
 
 Copy ALL your course files into `source-materials/` — lectures, slides, readings, spreadsheets, handouts, anything relevant.
 
-Any internal structure is fine. Subfolders, flat files, mixed formats — the plugin auto-classifies everything by content, not by filename or folder structure.
+Any internal structure is fine. Subfolders, flat files, mixed formats — the plugin auto-classifies everything by content type (lecture, case study, practice problems, reference material, supplementary readings), not by filename or folder structure.
 
 ### 4. Build Your Study Site
 
@@ -89,17 +91,17 @@ Then type:
 <!-- TODO: Add screenshot of the pipeline running (showing phase progress) -->
 ![Pipeline running](screenshots/pipeline-running.png)
 
-The pipeline runs through seven phases:
+The pipeline runs through seven phases, pausing between each one:
 
-1. **Content Ingestion** — Reads every file in `source-materials/`, extracts text, and creates structured study notes organized by topic.
-2. **Concept Mapping** — Identifies key concepts across all your materials, finds connections between topics, and builds a set of flashcards.
-3. **Content Audit** — Cross-checks generated content against your original materials for accuracy. Flags anything uncertain or ambiguous for your review.
-4. **Design** — Presents you with theme choices, exam format options, and page selections. You pick what you want; the plugin handles the rest.
-5. **Site Building** — Assembles the full website from your chosen theme and generated content. All pages are created and linked together.
-6. **Exam Generation** — Creates practice exams with configurable question counts, answer keys, and scoring.
-7. **Mobile Check** — Verifies that every page renders correctly on phone and tablet screen sizes.
+1. **Content Ingestion** — Reads every file in `source-materials/` in parallel (one agent per file), classifies each by content type (lecture, case study, practice problems, reference, or supplementary reading), and produces structured markdown study notes in `study-notes/`.
+2. **Concept Mapping** — Reads all study notes and synthesizes three outputs: a conceptual map (lecture progression, cross-cutting themes, concept dependency graph), a last-minute review sheet, and a full flashcard deck. Flashcard decks are generated in parallel — one agent per note.
+3. **Content Audit** — Spot-checks generated study notes and synthesis content against your original source files for accuracy. Auto-applies corrections; flags anything ambiguous in an audit report.
+4. **Design** — Asks you for theme preference, exam format, and page selections at this point in the pipeline, when the content is ready and you can make an informed choice.
+5. **Site Building** — Assembles the full website from your chosen theme and generated content, dispatching one parallel subagent per page.
+6. **Exam Generation** — Creates practice exams (multiple exams generated in parallel) with configurable question counts, answer keys, and scoring.
+7. **Mobile Check** — Verifies every page renders correctly on phone and tablet screen sizes. Auto-fixes critical issues when possible.
 
-When finished, your complete site is in the `site/` folder, ready to deploy.
+After each phase the pipeline shows what was produced and asks before continuing. When all phases finish, your complete site is in the `site/` folder, ready to deploy.
 
 ### 5. Deploy to GitHub Pages
 
@@ -135,7 +137,7 @@ The landing page with course name and quick links to all study resources.
 ![Home page](screenshots/page-home.png)
 
 ### Study Map
-Hierarchical topic overview with expandable sections showing how concepts connect across lectures.
+Full conceptual map of the course: lecture-by-lecture progression with driving questions and core concepts, cross-cutting themes that span multiple lectures, a concept dependency graph showing what builds on what, and a supplementary topics section for case studies and readings. Designed to take you from zero to complete understanding.
 
 ![Study map](screenshots/page-study-map.png)
 
@@ -235,7 +237,7 @@ Make sure your files are inside the `source-materials/` folder in your current w
 Check that your source files are not password-protected or corrupted. Try opening them on your computer first to confirm they are readable.
 
 **Pipeline interrupted mid-way**
-Just run `/study-site start` again. The pipeline tracks its progress and will offer to resume from where it left off.
+Just run `/study-site start` again. The pipeline tracks its progress in `pipeline-status.json` and will offer to resume from the last completed phase or start fresh.
 
 **GitHub Pages site not updating**
 After pushing changes, GitHub Pages can take 2-5 minutes to rebuild. Check the **Actions** tab on your repository for build status.
