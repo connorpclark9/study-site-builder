@@ -133,7 +133,7 @@ Requirements:
    - **Practice problems:** Formulas & Quantitative Tools and Key Concepts should cover the topics the problems test.
    - **Supplementary reading:** Overview and Key Concepts capture the main arguments and contributions.
    - **Reference material:** Formulas & Quantitative Tools and Glossary are the centerpieces; other sections may be brief.
-4. **Glossary:** Extract every significant term from the source. Target at least 10 terms — the glossary is the sole input for flashcard generation; missing terms mean missing flashcards. Every entry needs a definition and `[Related: ...]` cross-references.
+4. **Glossary:** Extract every significant term from the source — the glossary is the sole input for flashcard generation; missing terms mean missing flashcards. Include all terms that are defined, emphasized, or essential to understanding the material. Every entry needs a definition and `[Related: ...]` cross-references.
 5. Write the file to disk immediately. Do not wait for confirmation.
 ````
 

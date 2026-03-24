@@ -92,7 +92,7 @@ Work through phases in order. This is the default flow — if the user asks to r
 - `study-notes/` contains `.md` files.
 - Each file has YAML frontmatter with `title`, `source_files`, `topics`, and `lecture_number`.
 - Each file has all 7 required sections: Overview, Key Concepts, Frameworks & Mental Models, Formulas & Quantitative Tools, Case Studies, Key Takeaways, Key Terms and Definitions Glossary.
-- Each glossary has at least 10 terms.
+- Each glossary contains all terms that are defined, emphasized, or essential to understanding the material.
 
 Run the phase completion protocol.
 
