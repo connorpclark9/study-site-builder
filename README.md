@@ -229,6 +229,14 @@ Just run `/study-site start` again. The pipeline tracks its progress in `pipelin
 **GitHub Pages site not updating**
 After pushing changes, GitHub Pages can take 2-5 minutes to rebuild. Check the **Actions** tab on your repository for build status.
 
+## Status & Feedback
+
+This is **v0.1** — the core pipeline works end-to-end but it's early software. If you run into bugs, errors, or unexpected output, please open an issue:
+
+**https://github.com/connorpclark9/study-site-builder/issues**
+
+Include what course material you were using, which phase failed, and any error messages. All feedback is welcome.
+
 ## License
 
 MIT — see [LICENSE](LICENSE) file.
